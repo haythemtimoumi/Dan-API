@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'https://dan-dashboard-bo2efx2ui-haythem-timoumis-projects.vercel.app',
+  origin: 'https://dan-dashboard-virid.vercel.app',
   credentials: true,
 }));
 
