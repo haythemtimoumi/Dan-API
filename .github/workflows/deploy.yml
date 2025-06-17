@@ -21,7 +21,7 @@ jobs:
       run: |
         ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -e
-          nvm use 22
+          node -v
           cd /root/Dan-API
           git pull origin main
 
