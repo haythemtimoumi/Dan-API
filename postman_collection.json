@@ -1,0 +1,362 @@
+{
+  "info": {
+    "name": "Stock Analysis API",
+    "description": "Collection for testing the Stock Analysis API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Stocks By Date And Source - Rule 1",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/filter-by-date-source?date=05/15/2023&source=Rule 1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "filter-by-date-source"],
+          "query": [
+            {
+              "key": "date",
+              "value": "05/15/2023",
+              "description": "Date in MM/DD/YYYY format"
+            },
+            {
+              "key": "source",
+              "value": "Rule 1",
+              "description": "Source must be exactly 'Rule 1' with space"
+            }
+          ]
+        },
+        "description": "Retrieve stocks filtered by date and source='Rule 1'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stocks By Date And Source - Magic Formula",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/filter-by-date-source?date=05/15/2023&source=Magic Formula",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "filter-by-date-source"],
+          "query": [
+            {
+              "key": "date",
+              "value": "05/15/2023",
+              "description": "Date in MM/DD/YYYY format"
+            },
+            {
+              "key": "source",
+              "value": "Magic Formula",
+              "description": "Source must be exactly 'Magic Formula' with space"
+            }
+          ]
+        },
+        "description": "Retrieve stocks filtered by date and source='Magic Formula'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stocks By Date And Source - Invalid Source",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/filter-by-date-source?date=05/15/2023&source=Rule1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "filter-by-date-source"],
+          "query": [
+            {
+              "key": "date",
+              "value": "05/15/2023",
+              "description": "Date in MM/DD/YYYY format"
+            },
+            {
+              "key": "source",
+              "value": "Rule1",
+              "description": "Invalid source (no space) - should return error or empty results"
+            }
+          ]
+        },
+        "description": "Test with invalid source to verify validation"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Stock - Rule 1 Source",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks"]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2023-05-15\",\n  \"ticker\": \"AAPL\",\n  \"source\": \"Rule 1\",\n  \"pe\": 25.5,\n  \"dividend\": \"0.5%\",\n  \"cash_per_share\": \"3.5\",\n  \"current_ratio\": 1.2,\n  \"signal_score\": 85,\n  \"sentiment_score\": 70,\n  \"rule1_score\": 8,\n  \"moat_score\": 7,\n  \"management_score\": 9,\n  \"buy_price\": \"150.00\"\n}"
+        },
+        "description": "Create a new stock with source='Rule 1'"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Stock - Magic Formula Source",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks"]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2023-05-15\",\n  \"ticker\": \"MSFT\",\n  \"source\": \"Magic Formula\",\n  \"pe\": 28.2,\n  \"dividend\": \"0.8%\",\n  \"cash_per_share\": \"5.2\",\n  \"current_ratio\": 1.5,\n  \"signal_score\": 82,\n  \"sentiment_score\": 75\n}"
+        },
+        "description": "Create a new stock with source='Magic Formula'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Stocks",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks"]
+        },
+        "description": "Retrieve all stocks ordered by date (descending)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Stocks Sorted",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/sorted",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "sorted"]
+        },
+        "description": "Retrieve all stocks sorted by sentiment score (descending)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stocks With Source",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/with-source",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "with-source"]
+        },
+        "description": "Retrieve stocks with their analysis source (Magic Formula or Rule 1)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Daily Changes",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/daily-changes",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "daily-changes"]
+        },
+        "description": "Get daily changes in stocks (new, removed, existing)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Highlighted Stocks",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/highlighted",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "highlighted"]
+        },
+        "description": "Retrieve stocks with sentiment_score > 60 AND signal_score > 80"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Highlighted Stocks By Date Range",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/highlighted/filter?startDate=2023-01-01&endDate=2023-12-31",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "highlighted", "filter"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2023-01-01",
+              "description": "Start date in YYYY-MM-DD format"
+            },
+            {
+              "key": "endDate",
+              "value": "2023-12-31",
+              "description": "End date in YYYY-MM-DD format"
+            }
+          ]
+        },
+        "description": "Retrieve highlighted stocks filtered by date range"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Stocks By Date Range",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/filter?startDate=2023-01-01&endDate=2023-12-31",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "filter"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2023-01-01",
+              "description": "Start date in YYYY-MM-DD format"
+            },
+            {
+              "key": "endDate",
+              "value": "2023-12-31",
+              "description": "End date in YYYY-MM-DD format"
+            }
+          ]
+        },
+        "description": "Retrieve all stocks filtered by date range"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stocks By Date Range (Legacy)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/date-range?startDate=01/01/2023&endDate=12/31/2023",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "date-range"],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "01/01/2023",
+              "description": "Start date in MM/DD/YYYY format"
+            },
+            {
+              "key": "endDate",
+              "value": "12/31/2023",
+              "description": "End date in MM/DD/YYYY format"
+            }
+          ]
+        },
+        "description": "Retrieve stocks by date range (using MM/DD/YYYY format)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stock By ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "1"]
+        },
+        "description": "Retrieve a specific stock by ID"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Stocks By Ticker",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/ticker/AAPL",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "ticker", "AAPL"]
+        },
+        "description": "Retrieve stocks by ticker symbol"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Stock",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks"]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2023-05-15\",\n  \"ticker\": \"AAPL\",\n  \"source\": \"Magic Formula\",\n  \"pe\": 25.6,\n  \"dividend\": \"0.92%\",\n  \"cash_per_share\": \"3.75\",\n  \"current_ratio\": 1.2,\n  \"signal_score\": 85,\n  \"sentiment_score\": 75,\n  \"screenshot\": \"https://example.com/screenshot.jpg\",\n  \"guru\": \"Warren Buffett\",\n  \"rule1_score\": 0,\n  \"moat_score\": 8,\n  \"management_score\": 9,\n  \"buy_price\": \"150.00\"\n}"
+        },
+        "description": "Create a new stock entry"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Stock",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "1"]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"signal_score\": 90,\n  \"sentiment_score\": 80,\n  \"buy_price\": \"155.00\"\n}"
+        },
+        "description": "Update an existing stock"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Stock",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "1"]
+        },
+        "description": "Delete a stock"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
