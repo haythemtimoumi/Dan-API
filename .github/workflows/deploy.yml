@@ -22,7 +22,14 @@ jobs:
         ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -e
 
-          # Install Node.js v22 using NodeSource
+          # Remove old Node.js v12 and conflicting dev packages
+          apt-get remove -y nodejs libnode-dev || true
+
+          # Clean up any broken packages
+          apt-get autoremove -y
+          apt-get autoclean -y
+
+          # Install Node.js v22 from NodeSource
           curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
           apt-get install -y nodejs
 
