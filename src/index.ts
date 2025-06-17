@@ -14,7 +14,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://dan-dashboard-bo2efx2ui-haythem-timoumis-projects.vercel.app',
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(requestLogger);
 
