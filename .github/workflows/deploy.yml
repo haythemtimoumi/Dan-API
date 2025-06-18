@@ -17,25 +17,10 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Deploy Node.js app to VPS
+    - name: Deploy Node.js app to VPS using PM2
       run: |
         ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -e
-
-          # Remove old Node.js v12 and conflicting dev packages
-          apt-get remove -y nodejs libnode-dev || true
-
-          # Clean up any broken packages
-          apt-get autoremove -y
-          apt-get autoclean -y
-
-          # Install Node.js v22 from NodeSource
-          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-          apt-get install -y nodejs
-
-          # Confirm version
-          node -v
-          npm -v
 
           cd /root/Dan-API
           git pull origin main
@@ -43,9 +28,19 @@ jobs:
           npm install
           npm run build
 
-          # Kill any existing `npm run dev` process
-          pkill -f "npm run dev" || true
+          # Install pm2 if not installed
+          if ! command -v pm2 &> /dev/null
+          then
+            npm install -g pm2
+          fi
 
-          # Run in background
-          nohup npm run dev > app.log 2>&1 &
+          # Start or restart PM2 process
+          if pm2 list | grep -q "dan-api"; then
+            pm2 restart dan-api
+          else
+            pm2 start npm --name dan-api -- run start
+          fi
+
+          # Save PM2 process list on every deploy (in case of reboot)
+          pm2 save
         EOF
