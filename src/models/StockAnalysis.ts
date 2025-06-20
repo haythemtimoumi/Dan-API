@@ -209,12 +209,16 @@ async getRecentChangesAll(
         COALESCE(s.source, e.source) AS source,
         COALESCE(s.guru, e.guru) AS guru,
         '${metric}' AS metric,
-        COALESCE(s.start_value, 0) AS start_value,
-        COALESCE(e.end_value, 0) AS end_value,
+        s.start_value,
+        e.end_value,
         CASE
-          WHEN s.start_value IS NULL OR e.end_value IS NULL THEN NULL
-          WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN (COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0))
-          ELSE ROUND(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100, 2)
+          WHEN s.start_value IS NOT NULL AND e.end_value IS NOT NULL AND s.start_value != 0
+            THEN ROUND(((e.end_value - s.start_value) / s.start_value) * 100, 2)
+          WHEN s.start_value = 0 AND e.end_value IS NOT NULL
+            THEN 100
+          WHEN e.end_value = 0 AND s.start_value IS NOT NULL
+            THEN -100
+          ELSE 0
         END AS change_percent
       FROM start_data s
       FULL OUTER JOIN end_data e
@@ -226,10 +230,9 @@ async getRecentChangesAll(
         AND (
           s.start_value IS NULL OR e.end_value IS NULL OR
           (
-            ABS(COALESCE(s.start_value, 0)) < 0.01 
-            AND ABS(COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) >= $3
+            s.start_value = 0 AND ABS(e.end_value) >= $3
           ) OR (
-            ABS(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100) >= $3
+            s.start_value != 0 AND ABS(((e.end_value - s.start_value) / s.start_value) * 100) >= $3
           )
         )
     `;
@@ -238,40 +241,41 @@ async getRecentChangesAll(
 
     const { rows } = await pool.query(fullQuery, params);
 
-   return rows.map(row => {
-  const start = Number(row.start_value ?? 0);
-  const end = Number(row.end_value ?? 0);
-  let percent = row.change_percent !== null ? Number(row.change_percent) : null;
+    return rows.map(row => {
+      const start = Number(row.start_value ?? 0);
+      const end = Number(row.end_value ?? 0);
+      let percent = row.change_percent !== null ? Number(row.change_percent) : null;
 
-  if (percent === null) {
-    if (start === 0 && end !== 0) percent = 100;
-    else if (start !== 0 && end === 0) percent = -100;
-    else percent = 0;
-  }
+      if (percent === null) {
+        if (start === 0 && end !== 0) percent = 100;
+        else if (start !== 0 && end === 0) percent = -100;
+        else percent = 0;
+      }
 
-  return {
-    ticker: row.ticker,
-    source: row.source,
-    guru: row.guru,
-    metric: row.metric,
-    start_value: start,
-    end_value: end,
-    change_percent: percent,
-    change: percent,
-    status:
-      start === 0 && end !== 0
-        ? 'missing_start'
-        : start !== 0 && end === 0
-        ? 'missing_end'
-        : 'complete'
-  };
-});
+      return {
+        ticker: row.ticker,
+        source: row.source,
+        guru: row.guru,
+        metric: row.metric,
+        start_value: start,
+        end_value: end,
+        change_percent: percent,
+        change: percent,
+        status:
+          start === 0 && end !== 0
+            ? 'missing_start'
+            : start !== 0 && end === 0
+            ? 'missing_end'
+            : 'complete'
+      };
+    });
 
   } catch (error) {
     console.error('Error in getRecentChangesAll:', error);
     throw error;
   }
 }
+
 
 
   async getStockHistory(id: number, from?: string, to?: string): Promise<StockAnalysis[]> {
