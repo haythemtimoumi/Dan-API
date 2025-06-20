@@ -239,29 +239,32 @@ async getRecentChangesAll(
     const { rows } = await pool.query(fullQuery, params);
 
    return rows.map(row => {
-  row.start_value = Number(row.start_value ?? 0);
-  row.end_value = Number(row.end_value ?? 0);
-  row.change_percent = row.change_percent !== null ? Number(row.change_percent) : null;
+  const start = Number(row.start_value ?? 0);
+  const end = Number(row.end_value ?? 0);
+  let percent = row.change_percent !== null ? Number(row.change_percent) : null;
 
-  if (row.change_percent === null) {
-    if (row.start_value === 0 && row.end_value !== 0) {
-      row.change_percent = 100;
-    } else if (row.start_value !== 0 && row.end_value === 0) {
-      row.change_percent = -100;
-    } else {
-      row.change_percent = 0;
-    }
+  if (percent === null) {
+    if (start === 0 && end !== 0) percent = 100;
+    else if (start !== 0 && end === 0) percent = -100;
+    else percent = 0;
   }
 
-  row.change = row.change_percent;
-
-  row.status = (row.start_value === 0 && row.end_value !== 0)
-    ? 'missing_start'
-    : (row.start_value !== 0 && row.end_value === 0)
-    ? 'missing_end'
-    : 'complete';
-
-  return row;
+  return {
+    ticker: row.ticker,
+    source: row.source,
+    guru: row.guru,
+    metric: row.metric,
+    start_value: start,
+    end_value: end,
+    change_percent: percent,
+    change: percent,
+    status:
+      start === 0 && end !== 0
+        ? 'missing_start'
+        : start !== 0 && end === 0
+        ? 'missing_end'
+        : 'complete'
+  };
 });
 
   } catch (error) {
