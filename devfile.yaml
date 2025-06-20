@@ -1,0 +1,41 @@
+schemaVersion: 2.0.0
+metadata:
+  name: stocks-api
+  version: 1.0.0
+  displayName: Stock Analysis API
+  description: API for stock analysis and data retrieval
+components:
+  - name: dev
+    container:
+      image: public.ecr.aws/aws-mde/universal-image:latest
+      memoryLimit: 2Gi
+      mountSources: true
+      endpoints:
+        - name: http-api
+          targetPort: 3000
+commands:
+  - id: install
+    exec:
+      component: dev
+      commandLine: "npm install"
+      workingDir: ${PROJECT_SOURCE}
+  - id: build
+    exec:
+      component: dev
+      commandLine: "npm run build"
+      workingDir: ${PROJECT_SOURCE}
+  - id: test
+    exec:
+      component: dev
+      commandLine: "npm run test"
+      workingDir: ${PROJECT_SOURCE}
+  - id: dev-run
+    exec:
+      component: dev
+      commandLine: "npm run dev"
+      workingDir: ${PROJECT_SOURCE}
+  - id: start
+    exec:
+      component: dev
+      commandLine: "npm run build && npm start"
+      workingDir: ${PROJECT_SOURCE}

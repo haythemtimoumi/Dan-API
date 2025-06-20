@@ -20,6 +20,9 @@ import {
 
 const router = Router();
 
+// GET recent changes in metrics between dates - IMPORTANT: Keep this route first to ensure it matches correctly
+router.get('/recent-changes', getRecentChanges);
+
 // GET all stocks
 router.get('/', getAllStocks);
 
@@ -46,9 +49,6 @@ router.get('/date-range', getStocksByDateRange);
 
 // GET stocks filtered by date and source
 router.get('/filter-by-date-source', getStocksByDateAndSource);
-
-// GET recent changes in metrics between dates
-router.get('/recent-changes', getRecentChanges);
 
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);

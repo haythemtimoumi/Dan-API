@@ -96,9 +96,9 @@ export class StockAnalysisModel {
           s.start_value,
           e.end_value,
           CASE
-            WHEN ABS(s.start_value) < 0.01 THEN (e.end_value - s.start_value) as absolute_change
-            ELSE ROUND(((e.end_value - s.start_value) / s.start_value) * 100, 2) as change_percent
-          END as change
+            WHEN ABS(s.start_value) < 0.01 THEN (e.end_value - s.start_value)
+            ELSE ROUND(((e.end_value - s.start_value) / s.start_value) * 100, 2)
+          END as change_percent
         FROM start_data s
         JOIN end_data e ON s.ticker = e.ticker AND 
                           COALESCE(s.source, '') = COALESCE(e.source, '') AND 
@@ -127,6 +127,9 @@ export class StockAnalysisModel {
         // Ensure numeric values
         row.start_value = Number(row.start_value);
         row.end_value = Number(row.end_value);
+        
+        // Add change property for backward compatibility
+        row.change = row.change_percent;
         
         return row;
       });

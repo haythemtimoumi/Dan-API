@@ -430,6 +430,7 @@ describe('Stock Routes', () => {
       expect(response.body[0].ticker).toBe('AAPL');
       expect(response.body[0].metric).toBe('pe');
       expect(response.body[0].change_percent).toBe(10.16);
+      expect(response.body[0].change).toBe(10.16);
     });
 
     it('should return 400 when metric parameter is missing', async () => {
