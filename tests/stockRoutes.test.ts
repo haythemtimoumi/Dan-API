@@ -377,6 +377,193 @@ describe('Stock Routes', () => {
     });
   });
 
+  describe('GET /api/stocks/recent-changes', () => {
+    it('should call getRecentChanges controller with valid parameters', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        const { metric, start_date, end_date, threshold, ticker, source, guru } = req.query;
+        res.status(200).json([
+          { 
+            ticker: 'AAPL',
+            source: 'Magic Formula',
+            guru: 'Warren Buffett',
+            metric: metric,
+            start_value: 25.6,
+            end_value: 28.2,
+            change_percent: 10.16
+          },
+          { 
+            ticker: 'MSFT',
+            source: 'Magic Formula',
+            guru: null,
+            metric: metric,
+            start_value: 30.1,
+            end_value: 32.5,
+            change_percent: 7.97
+          }
+        ]);
+      });
+
+      // Make request with valid parameters
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          metric: 'pe', 
+          start_date: '2023-01-01', 
+          end_date: '2023-12-31',
+          threshold: '5',
+          ticker: 'AAPL'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(200);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(mockGetRecentChanges.mock.calls[0][0].query).toEqual({
+        metric: 'pe',
+        start_date: '2023-01-01',
+        end_date: '2023-12-31',
+        threshold: '5',
+        ticker: 'AAPL'
+      });
+      expect(response.body).toHaveLength(2);
+      expect(response.body[0].ticker).toBe('AAPL');
+      expect(response.body[0].metric).toBe('pe');
+      expect(response.body[0].change_percent).toBe(10.16);
+    });
+
+    it('should return 400 when metric parameter is missing', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        res.status(400).json({ message: 'metric parameter is required' });
+      });
+
+      // Make request with missing metric parameter
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          start_date: '2023-01-01', 
+          end_date: '2023-12-31'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(400);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(response.body.message).toBe('metric parameter is required');
+    });
+
+    it('should return 400 when start_date parameter is missing', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        res.status(400).json({ message: 'start_date parameter is required' });
+      });
+
+      // Make request with missing start_date parameter
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          metric: 'pe',
+          end_date: '2023-12-31'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(400);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(response.body.message).toBe('start_date parameter is required');
+    });
+
+    it('should return 400 when end_date parameter is missing', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        res.status(400).json({ message: 'end_date parameter is required' });
+      });
+
+      // Make request with missing end_date parameter
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          metric: 'pe',
+          start_date: '2023-01-01'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(400);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(response.body.message).toBe('end_date parameter is required');
+    });
+
+    it('should return 400 when metric is invalid', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        res.status(400).json({ 
+          message: 'Invalid metric: invalid_metric. Must be one of: pe, signal_score, sentiment_score, buy_price' 
+        });
+      });
+
+      // Make request with invalid metric
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          metric: 'invalid_metric',
+          start_date: '2023-01-01',
+          end_date: '2023-12-31'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(400);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(response.body.message).toContain('Invalid metric');
+    });
+
+    it('should return 400 when date format is invalid', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        res.status(400).json({ message: 'Dates must be in YYYY-MM-DD format' });
+      });
+
+      // Make request with invalid date format
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          metric: 'pe',
+          start_date: '01/01/2023',
+          end_date: '2023-12-31'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(400);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(response.body.message).toBe('Dates must be in YYYY-MM-DD format');
+    });
+
+    it('should return 500 when server error occurs', async () => {
+      // Mock implementation
+      const mockGetRecentChanges = stockController.getRecentChanges as jest.Mock;
+      mockGetRecentChanges.mockImplementation((req, res) => {
+        res.status(500).json({ message: 'Failed to fetch recent changes' });
+      });
+
+      // Make request
+      const response = await request(app)
+        .get('/api/stocks/recent-changes')
+        .query({ 
+          metric: 'pe',
+          start_date: '2023-01-01',
+          end_date: '2023-12-31'
+        });
+      
+      // Assertions
+      expect(response.status).toBe(500);
+      expect(mockGetRecentChanges).toHaveBeenCalled();
+      expect(response.body.message).toBe('Failed to fetch recent changes');
+    });
+  });
+
   describe('GET /api/stocks/:id/history', () => {
     it('should call getStockHistory controller with valid ID', async () => {
       // Mock implementation

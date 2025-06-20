@@ -97,6 +97,12 @@ UPDATE_STOCK='{
 }'
 call_api "/1" "PUT" "$UPDATE_STOCK" "Update stock"
 
+# GET recent changes in metrics
+call_api "/recent-changes?metric=pe&start_date=2023-01-01&end_date=2023-12-31&threshold=5" "GET" "" "Get recent changes in PE ratio with at least 5% change"
+
+# GET recent changes in metrics with additional filters
+call_api "/recent-changes?metric=signal_score&start_date=2023-01-01&end_date=2023-12-31&threshold=10&ticker=AAPL" "GET" "" "Get recent changes in signal score for AAPL with at least 10% change"
+
 # Note: DELETE is commented out to prevent accidental deletion
 # Uncomment to test DELETE functionality
 # call_api "/1" "DELETE" "" "Delete stock"

@@ -28,6 +28,113 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query);
     return rows;
   }
+  
+  async getRecentChanges(
+    metric: string,
+    startDate: string,
+    endDate: string,
+    threshold: number = 5,
+    ticker?: string,
+    source?: string,
+    guru?: string
+  ): Promise<any[]> {
+    try {
+      // Validate metric is one of the allowed values
+      const allowedMetrics = ['pe', 'signal_score', 'sentiment_score', 'buy_price'];
+      if (!allowedMetrics.includes(metric)) {
+        throw new Error(`Invalid metric: ${metric}. Must be one of: ${allowedMetrics.join(', ')}`);
+      }
+      
+      // Build the base query to get stocks on start date
+      let startQuery = `
+        SELECT ticker, source, guru, ${metric} as start_value
+        FROM stock_analysis
+        WHERE date::date = $1::date
+      `;
+      
+      // Build the base query to get stocks on end date
+      let endQuery = `
+        SELECT ticker, source, guru, ${metric} as end_value
+        FROM stock_analysis
+        WHERE date::date = $2::date
+      `;
+      
+      // Add filters if provided
+      const params: any[] = [startDate, endDate];
+      let paramCounter = 3;
+      
+      if (ticker) {
+        startQuery += ` AND ticker = $${paramCounter}`;
+        endQuery += ` AND ticker = $${paramCounter}`;
+        params.push(ticker);
+        paramCounter++;
+      }
+      
+      if (source) {
+        startQuery += ` AND source = $${paramCounter}`;
+        endQuery += ` AND source = $${paramCounter}`;
+        params.push(source);
+        paramCounter++;
+      }
+      
+      if (guru) {
+        startQuery += ` AND guru = $${paramCounter}`;
+        endQuery += ` AND guru = $${paramCounter}`;
+        params.push(guru);
+        paramCounter++;
+      }
+      
+      // Complete the query to join start and end data
+      const fullQuery = `
+        WITH start_data AS (${startQuery}),
+             end_data AS (${endQuery})
+        SELECT 
+          s.ticker,
+          s.source,
+          s.guru,
+          '${metric}' as metric,
+          s.start_value,
+          e.end_value,
+          CASE
+            WHEN ABS(s.start_value) < 0.01 THEN (e.end_value - s.start_value) as absolute_change
+            ELSE ROUND(((e.end_value - s.start_value) / s.start_value) * 100, 2) as change_percent
+          END as change
+        FROM start_data s
+        JOIN end_data e ON s.ticker = e.ticker AND 
+                          COALESCE(s.source, '') = COALESCE(e.source, '') AND 
+                          COALESCE(s.guru, '') = COALESCE(e.guru, '')
+        WHERE 
+          CASE
+            WHEN ABS(s.start_value) < 0.01 THEN ABS(e.end_value - s.start_value) >= $${paramCounter}
+            ELSE ABS(((e.end_value - s.start_value) / s.start_value) * 100) >= $${paramCounter}
+          END
+      `;
+      
+      params.push(threshold);
+      
+      const { rows } = await pool.query(fullQuery, params);
+      
+      // Process the results to ensure proper formatting
+      return rows.map(row => {
+        // Convert buy_price from string to number if needed
+        if (metric === 'buy_price' && typeof row.start_value === 'string') {
+          row.start_value = parseFloat(row.start_value.replace(/[^0-9.-]+/g, ''));
+        }
+        if (metric === 'buy_price' && typeof row.end_value === 'string') {
+          row.end_value = parseFloat(row.end_value.replace(/[^0-9.-]+/g, ''));
+        }
+        
+        // Ensure numeric values
+        row.start_value = Number(row.start_value);
+        row.end_value = Number(row.end_value);
+        
+        return row;
+      });
+    } catch (error) {
+      console.error('Error in getRecentChanges:', error);
+      throw error;
+    }
+  }
 
   async getStockHistory(id: number, from?: string, to?: string): Promise<StockAnalysis[]> {
     try {

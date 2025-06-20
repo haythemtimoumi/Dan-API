@@ -14,7 +14,8 @@ import {
   getHighlightedStocksByDateRange,
   getAllStocksByDateRange,
   getStockHistory,
-  getStocksByDateAndSource
+  getStocksByDateAndSource,
+  getRecentChanges
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -45,6 +46,9 @@ router.get('/date-range', getStocksByDateRange);
 
 // GET stocks filtered by date and source
 router.get('/filter-by-date-source', getStocksByDateAndSource);
+
+// GET recent changes in metrics between dates
+router.get('/recent-changes', getRecentChanges);
 
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);

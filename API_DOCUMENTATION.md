@@ -255,6 +255,51 @@ Returns stocks by date range using MM/DD/YYYY format.
 ]
 ```
 
+#### Get Recent Changes in Metrics
+
+```
+GET /api/stocks/recent-changes?metric=pe&start_date=2023-01-01&end_date=2023-12-31&threshold=5&ticker=AAPL&source=Magic%20Formula&guru=Warren%20Buffett
+```
+
+Returns stocks with significant changes in the specified metric between two dates.
+
+**Query Parameters:**
+- `metric` (required): One of: pe, signal_score, sentiment_score, buy_price
+- `start_date` (required): Start date in YYYY-MM-DD format
+- `end_date` (required): End date in YYYY-MM-DD format
+- `threshold` (optional, default 5): Minimum percent change to include
+- `ticker` (optional): Filter by ticker
+- `source` (optional): Filter by source
+- `guru` (optional): Filter by guru
+
+**Response Example:**
+```json
+[
+  {
+    "ticker": "AAPL",
+    "source": "Magic Formula",
+    "guru": "Warren Buffett",
+    "metric": "pe",
+    "start_value": 25.6,
+    "end_value": 28.2,
+    "change_percent": 10.16
+  },
+  {
+    "ticker": "MSFT",
+    "source": "Magic Formula",
+    "guru": null,
+    "metric": "pe",
+    "start_value": 30.1,
+    "end_value": 32.5,
+    "change_percent": 7.97
+  }
+]
+```
+
+**Notes:**
+- For very small start values (less than 0.01), absolute change is calculated instead of percent change
+- Only entries where the absolute value of the change meets or exceeds the threshold are returned
+
 #### Get Stock By ID
 
 ```

@@ -192,6 +192,56 @@
       "response": []
     },
     {
+      "name": "Get Recent Changes in Metrics",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/recent-changes?metric=pe&start_date=2023-01-01&end_date=2023-12-31&threshold=5&ticker=AAPL&source=Magic Formula&guru=Warren Buffett",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "recent-changes"],
+          "query": [
+            {
+              "key": "metric",
+              "value": "pe",
+              "description": "Required. One of: pe, signal_score, sentiment_score, buy_price"
+            },
+            {
+              "key": "start_date",
+              "value": "2023-01-01",
+              "description": "Required. Start date in YYYY-MM-DD format"
+            },
+            {
+              "key": "end_date",
+              "value": "2023-12-31",
+              "description": "Required. End date in YYYY-MM-DD format"
+            },
+            {
+              "key": "threshold",
+              "value": "5",
+              "description": "Optional. Minimum percent change to include (default: 5)"
+            },
+            {
+              "key": "ticker",
+              "value": "AAPL",
+              "description": "Optional. Filter by ticker"
+            },
+            {
+              "key": "source",
+              "value": "Magic Formula",
+              "description": "Optional. Filter by source"
+            },
+            {
+              "key": "guru",
+              "value": "Warren Buffett",
+              "description": "Optional. Filter by guru"
+            }
+          ]
+        },
+        "description": "Retrieve stocks with significant changes in the specified metric between two dates"
+      },
+      "response": []
+    },
+    {
       "name": "Get Highlighted Stocks By Date Range",
       "request": {
         "method": "GET",

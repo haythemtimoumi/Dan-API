@@ -291,81 +291,274 @@ describe('StockAnalysisModel', () => {
     });
   });
 
-  describe('getStocksByDateAndSource', () => {
-    it('should return stocks filtered by date and source', async () => {
+  describe('getRecentChanges', () => {
+    it('should return stocks with significant changes in the specified metric', async () => {
       // Mock data
-      const mockStocks = [
+      const mockChanges = [
         { 
-          id: 1, 
-          ticker: 'AAPL', 
-          date: '2023-06-15T00:00:00.000Z',
+          ticker: 'AAPL',
           source: 'Magic Formula',
-          sentiment_score: 75, 
-          signal_score: 85 
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: 25.6,
+          end_value: 28.2,
+          change: 10.16
         },
         { 
-          id: 2, 
-          ticker: 'MSFT', 
-          date: '2023-06-15T00:00:00.000Z',
+          ticker: 'MSFT',
           source: 'Magic Formula',
-          sentiment_score: 70, 
-          signal_score: 82 
+          guru: null,
+          metric: 'pe',
+          start_value: 30.1,
+          end_value: 32.5,
+          change: 7.97
         }
       ];
 
       // Mock the query response
-      mockPool.query.mockResolvedValue({ rows: mockStocks });
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
 
       // Call the method
-      const result = await stockModel.getStocksByDateAndSource('06/15/2023', 'Magic Formula');
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5
+      );
 
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE date::date = $1::date AND source = $2'),
-        ['2023-06-15', 'Magic Formula']
+        expect.stringContaining('WITH start_data AS'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 5])
       );
-      expect(result).toEqual(mockStocks);
+      expect(result).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          ticker: 'AAPL',
+          metric: 'pe',
+          start_value: expect.any(Number),
+          end_value: expect.any(Number),
+          change: expect.any(Number)
+        })
+      ]));
       expect(result).toHaveLength(2);
     });
 
-    it('should handle empty results when no stocks match the criteria', async () => {
+    it('should apply ticker filter when provided', async () => {
+      // Mock data
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: 25.6,
+          end_value: 28.2,
+          change: 10.16
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method with ticker filter
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5,
+        'AAPL'
+      );
+
+      // Assertions
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('AND ticker = $3'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'AAPL', 5])
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].ticker).toBe('AAPL');
+    });
+
+    it('should apply source filter when provided', async () => {
+      // Mock data
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: 25.6,
+          end_value: 28.2,
+          change: 10.16
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method with source filter
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5,
+        undefined,
+        'Magic Formula'
+      );
+
+      // Assertions
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('AND source = $3'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'Magic Formula', 5])
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].source).toBe('Magic Formula');
+    });
+
+    it('should apply guru filter when provided', async () => {
+      // Mock data
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: 25.6,
+          end_value: 28.2,
+          change: 10.16
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method with guru filter
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5,
+        undefined,
+        undefined,
+        'Warren Buffett'
+      );
+
+      // Assertions
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('AND guru = $3'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'Warren Buffett', 5])
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].guru).toBe('Warren Buffett');
+    });
+
+    it('should apply all filters when provided', async () => {
+      // Mock data
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: 25.6,
+          end_value: 28.2,
+          change: 10.16
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method with all filters
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5,
+        'AAPL',
+        'Magic Formula',
+        'Warren Buffett'
+      );
+
+      // Assertions
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('AND ticker = $3'),
+        expect.arrayContaining([
+          '2023-01-01', 
+          '2023-12-31', 
+          'AAPL', 
+          'Magic Formula', 
+          'Warren Buffett', 
+          5
+        ])
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].ticker).toBe('AAPL');
+      expect(result[0].source).toBe('Magic Formula');
+      expect(result[0].guru).toBe('Warren Buffett');
+    });
+
+    it('should handle buy_price metric correctly', async () => {
+      // Mock data with string buy_price values
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'buy_price',
+          start_value: '$150.00',
+          end_value: '$165.00',
+          change: 10.00
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method with buy_price metric
+      const result = await stockModel.getRecentChanges(
+        'buy_price', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5
+      );
+
+      // Assertions
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('buy_price'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 5])
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].metric).toBe('buy_price');
+      expect(typeof result[0].start_value).toBe('number');
+      expect(typeof result[0].end_value).toBe('number');
+    });
+
+    it('should throw error for invalid metric', async () => {
+      // Call the method with invalid metric
+      await expect(stockModel.getRecentChanges(
+        'invalid_metric', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5
+      )).rejects.toThrow('Invalid metric');
+    });
+
+    it('should handle empty results', async () => {
       // Mock empty response
       mockPool.query.mockResolvedValue({ rows: [] });
 
       // Call the method
-      const result = await stockModel.getStocksByDateAndSource('06/15/2023', 'Rule 1');
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5
+      );
 
       // Assertions
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE date::date = $1::date AND source = $2'),
-        ['2023-06-15', 'Rule 1']
-      );
+      expect(mockPool.query).toHaveBeenCalled();
       expect(result).toEqual([]);
       expect(result).toHaveLength(0);
-    });
-
-    it('should properly format the date from MM/DD/YYYY to YYYY-MM-DD', async () => {
-      // Mock data
-      const mockStocks = [
-        { 
-          id: 1, 
-          ticker: 'AAPL', 
-          date: '2023-06-15T00:00:00.000Z',
-          source: 'Magic Formula'
-        }
-      ];
-
-      // Mock the query response
-      mockPool.query.mockResolvedValue({ rows: mockStocks });
-
-      // Call the method
-      await stockModel.getStocksByDateAndSource('06/15/2023', 'Magic Formula');
-
-      // Assertions
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.anything(),
-        ['2023-06-15', 'Magic Formula']
-      );
     });
   });
 

@@ -3,6 +3,67 @@ import { StockAnalysisModel, StockAnalysis } from '../models/StockAnalysis';
 import { pool } from '../config/db';
 const stockModel = new StockAnalysisModel();
 
+export const getRecentChanges = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { metric, start_date, end_date, threshold, ticker, source, guru } = req.query;
+    
+    // Validate required parameters
+    if (!metric) {
+      res.status(400).json({ message: 'metric parameter is required' });
+      return;
+    }
+    
+    if (!start_date) {
+      res.status(400).json({ message: 'start_date parameter is required' });
+      return;
+    }
+    
+    if (!end_date) {
+      res.status(400).json({ message: 'end_date parameter is required' });
+      return;
+    }
+    
+    // Validate metric is one of the allowed values
+    const allowedMetrics = ['pe', 'signal_score', 'sentiment_score', 'buy_price'];
+    if (!allowedMetrics.includes(metric as string)) {
+      res.status(400).json({ 
+        message: `Invalid metric: ${metric}. Must be one of: ${allowedMetrics.join(', ')}` 
+      });
+      return;
+    }
+    
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(start_date as string) || !dateRegex.test(end_date as string)) {
+      res.status(400).json({ message: 'Dates must be in YYYY-MM-DD format' });
+      return;
+    }
+    
+    // Parse threshold to number with default value of 5
+    const parsedThreshold = threshold ? parseFloat(threshold as string) : 5;
+    if (isNaN(parsedThreshold)) {
+      res.status(400).json({ message: 'threshold must be a valid number' });
+      return;
+    }
+    
+    // Get the recent changes
+    const changes = await stockModel.getRecentChanges(
+      metric as string,
+      start_date as string,
+      end_date as string,
+      parsedThreshold,
+      ticker as string | undefined,
+      source as string | undefined,
+      guru as string | undefined
+    );
+    
+    res.status(200).json(changes);
+  } catch (error) {
+    console.error('Error fetching recent changes:', error);
+    res.status(500).json({ message: 'Failed to fetch recent changes' });
+  }
+};
+
 export const getAllStocks = async (req: Request, res: Response): Promise<void> => {
   try {
     const stocks = await stockModel.getAll();
