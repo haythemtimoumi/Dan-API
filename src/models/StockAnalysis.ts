@@ -88,11 +88,12 @@ export class StockAnalysisModel {
       }
 
       if (guru) {
-        startQuery += ` AND guru = $${paramCounter}`;
-        endQuery += ` AND guru = $${paramCounter}`;
-        params.push(guru);
-        paramCounter++;
-      }
+  startQuery += ` AND LOWER(guru) = LOWER($${paramCounter})`;
+  endQuery += ` AND LOWER(guru) = LOWER($${paramCounter})`;
+  params.push(guru.trim());
+  paramCounter++;
+}
+
 
       const fullQuery = `
         WITH start_data AS (${startQuery}),
