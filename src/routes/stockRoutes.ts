@@ -56,7 +56,7 @@ router.get('/ticker/:ticker', getStocksByTicker);
 // GET stock history by ID
 router.get('/:id/history', getStockHistory);
 
-// GET stock by ID
+// GET stock by ID - IMPORTANT: Keep this route last as it's a catch-all
 router.get('/:id', getStockById);
 
 // POST create new stock
