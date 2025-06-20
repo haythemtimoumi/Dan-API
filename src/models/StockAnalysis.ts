@@ -88,11 +88,12 @@ async getRecentChanges(
       }
 
       if (guru) {
-        startQuery += ` AND LOWER(guru) = LOWER($${paramCounter})`;
-        endQuery += ` AND LOWER(guru) = LOWER($${paramCounter})`;
-        params.push(guru);
-        paramCounter++;
-      }
+  startQuery += ` AND guru ILIKE $${paramCounter}`;
+  endQuery += ` AND guru ILIKE $${paramCounter}`;
+  params.push(guru);
+  paramCounter++;
+}
+
 
       const fullQuery = `
         WITH start_data AS (${startQuery}),
