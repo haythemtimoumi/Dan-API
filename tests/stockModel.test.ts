@@ -4,7 +4,7 @@ import { pool } from '../src/config/db';
 // Mock the database pool
 jest.mock('../src/config/db', () => ({
   pool: {
-    query: jest.fn()
+    query: jest.fn().mockImplementation(() => Promise.resolve({ rows: [] }))
   }
 }));
 
@@ -302,7 +302,9 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: 25.6,
           end_value: 28.2,
-          change: 10.16
+          change_percent: 10.16,
+          change: 10.16,
+          status: 'complete'
         },
         { 
           ticker: 'MSFT',
@@ -311,7 +313,9 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: 30.1,
           end_value: 32.5,
-          change: 7.97
+          change_percent: 7.97,
+          change: 7.97,
+          status: 'complete'
         }
       ];
 
@@ -329,7 +333,7 @@ describe('StockAnalysisModel', () => {
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('WITH start_data AS'),
-        expect.arrayContaining(['2023-01-01', '2023-12-31', 5])
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'pe', 5])
       );
       expect(result).toEqual(expect.arrayContaining([
         expect.objectContaining({
@@ -337,7 +341,8 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: expect.any(Number),
           end_value: expect.any(Number),
-          change: expect.any(Number)
+          change: expect.any(Number),
+          status: 'complete'
         })
       ]));
       expect(result).toHaveLength(2);
@@ -353,7 +358,9 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: 25.6,
           end_value: 28.2,
-          change: 10.16
+          change_percent: 10.16,
+          change: 10.16,
+          status: 'complete'
         }
       ];
 
@@ -371,8 +378,8 @@ describe('StockAnalysisModel', () => {
 
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND ticker = $3'),
-        expect.arrayContaining(['2023-01-01', '2023-12-31', 'AAPL', 5])
+        expect.stringContaining('AND ticker = $4'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'pe', 'AAPL', 5])
       );
       expect(result).toHaveLength(1);
       expect(result[0].ticker).toBe('AAPL');
@@ -388,7 +395,9 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: 25.6,
           end_value: 28.2,
-          change: 10.16
+          change_percent: 10.16,
+          change: 10.16,
+          status: 'complete'
         }
       ];
 
@@ -407,8 +416,8 @@ describe('StockAnalysisModel', () => {
 
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND source = $3'),
-        expect.arrayContaining(['2023-01-01', '2023-12-31', 'Magic Formula', 5])
+        expect.stringContaining('AND source = $4'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'pe', 'Magic Formula', 5])
       );
       expect(result).toHaveLength(1);
       expect(result[0].source).toBe('Magic Formula');
@@ -424,7 +433,9 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: 25.6,
           end_value: 28.2,
-          change: 10.16
+          change_percent: 10.16,
+          change: 10.16,
+          status: 'complete'
         }
       ];
 
@@ -444,8 +455,8 @@ describe('StockAnalysisModel', () => {
 
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND guru = $3'),
-        expect.arrayContaining(['2023-01-01', '2023-12-31', 'Warren Buffett', 5])
+        expect.stringContaining('AND guru = $4'),
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'pe', 'Warren Buffett', 5])
       );
       expect(result).toHaveLength(1);
       expect(result[0].guru).toBe('Warren Buffett');
@@ -461,7 +472,9 @@ describe('StockAnalysisModel', () => {
           metric: 'pe',
           start_value: 25.6,
           end_value: 28.2,
-          change: 10.16
+          change_percent: 10.16,
+          change: 10.16,
+          status: 'complete'
         }
       ];
 
@@ -481,10 +494,11 @@ describe('StockAnalysisModel', () => {
 
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND ticker = $3'),
+        expect.stringContaining('AND ticker = $4'),
         expect.arrayContaining([
           '2023-01-01', 
           '2023-12-31', 
+          'pe',
           'AAPL', 
           'Magic Formula', 
           'Warren Buffett', 
@@ -505,9 +519,11 @@ describe('StockAnalysisModel', () => {
           source: 'Magic Formula',
           guru: 'Warren Buffett',
           metric: 'buy_price',
-          start_value: '$150.00',
-          end_value: '$165.00',
-          change: 10.00
+          start_value: 150,
+          end_value: 165,
+          change_percent: 10.00,
+          change: 10.00,
+          status: 'complete'
         }
       ];
 
@@ -525,7 +541,7 @@ describe('StockAnalysisModel', () => {
       // Assertions
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('buy_price'),
-        expect.arrayContaining(['2023-01-01', '2023-12-31', 5])
+        expect.arrayContaining(['2023-01-01', '2023-12-31', 'buy_price', 5])
       );
       expect(result).toHaveLength(1);
       expect(result[0].metric).toBe('buy_price');
@@ -559,6 +575,72 @@ describe('StockAnalysisModel', () => {
       expect(mockPool.query).toHaveBeenCalled();
       expect(result).toEqual([]);
       expect(result).toHaveLength(0);
+    });
+
+    it('should handle missing start data', async () => {
+      // Mock data with missing start value
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: null,
+          end_value: 28.2,
+          change_percent: null
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5
+      );
+
+      // Assertions
+      expect(result).toHaveLength(1);
+      expect(result[0].start_value).toBe(0);
+      expect(result[0].end_value).toBe(28.2);
+      expect(result[0].change_percent).toBe(100);
+      expect(result[0].status).toBe('missing_start');
+    });
+
+    it('should handle missing end data', async () => {
+      // Mock data with missing end value
+      const mockChanges = [
+        { 
+          ticker: 'AAPL',
+          source: 'Magic Formula',
+          guru: 'Warren Buffett',
+          metric: 'pe',
+          start_value: 25.6,
+          end_value: null,
+          change_percent: null
+        }
+      ];
+
+      // Mock the query response
+      mockPool.query.mockResolvedValue({ rows: mockChanges });
+
+      // Call the method
+      const result = await stockModel.getRecentChanges(
+        'pe', 
+        '2023-01-01', 
+        '2023-12-31', 
+        5
+      );
+
+      // Assertions
+      expect(result).toHaveLength(1);
+      expect(result[0].start_value).toBe(25.6);
+      expect(result[0].end_value).toBe(0);
+      expect(result[0].change_percent).toBe(-100);
+      expect(result[0].status).toBe('missing_end');
     });
   });
 

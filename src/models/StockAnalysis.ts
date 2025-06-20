@@ -45,23 +45,46 @@ export class StockAnalysisModel {
         throw new Error(`Invalid metric: ${metric}. Must be one of: ${allowedMetrics.join(', ')}`);
       }
       
+      // Use a parameterized query for the column name by using a CASE statement
+      // This prevents SQL injection by validating the metric against allowed values
+      const metricColumn = `
+        CASE 
+          WHEN $3 = 'pe' THEN pe
+          WHEN $3 = 'signal_score' THEN signal_score
+          WHEN $3 = 'sentiment_score' THEN sentiment_score
+          WHEN $3 = 'buy_price' THEN 
+            CASE 
+              WHEN buy_price ~ '^[0-9.]+$' THEN buy_price::numeric
+              ELSE regexp_replace(buy_price, '[^0-9.-]', '', 'g')::numeric
+            END
+        END
+      `;
+      
       // Build the base query to get stocks on start date
       let startQuery = `
-        SELECT ticker, source, guru, ${metric} as start_value
+        SELECT 
+          ticker, 
+          source, 
+          guru, 
+          ${metricColumn} as start_value
         FROM stock_analysis
         WHERE date::date = $1::date
       `;
       
       // Build the base query to get stocks on end date
       let endQuery = `
-        SELECT ticker, source, guru, ${metric} as end_value
+        SELECT 
+          ticker, 
+          source, 
+          guru, 
+          ${metricColumn} as end_value
         FROM stock_analysis
         WHERE date::date = $2::date
       `;
       
       // Add filters if provided
-      const params: any[] = [startDate, endDate];
-      let paramCounter = 3;
+      const params: any[] = [startDate, endDate, metric];
+      let paramCounter = 4;
       
       if (ticker) {
         startQuery += ` AND ticker = $${paramCounter}`;
@@ -84,7 +107,7 @@ export class StockAnalysisModel {
         paramCounter++;
       }
       
-      // Complete the query to join start and end data
+      // Complete the query to join start and end data with improved error handling
       const fullQuery = `
         WITH start_data AS (${startQuery}),
              end_data AS (${endQuery})
@@ -92,21 +115,24 @@ export class StockAnalysisModel {
           s.ticker,
           s.source,
           s.guru,
-          '${metric}' as metric,
-          s.start_value,
-          e.end_value,
+          $3 as metric,
+          COALESCE(s.start_value, 0) as start_value,
+          COALESCE(e.end_value, 0) as end_value,
           CASE
-            WHEN ABS(s.start_value) < 0.01 THEN (e.end_value - s.start_value)
-            ELSE ROUND(((e.end_value - s.start_value) / s.start_value) * 100, 2)
+            WHEN s.start_value IS NULL OR e.end_value IS NULL THEN NULL
+            WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN (COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0))
+            ELSE ROUND(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100, 2)
           END as change_percent
         FROM start_data s
-        JOIN end_data e ON s.ticker = e.ticker AND 
-                          COALESCE(s.source, '') = COALESCE(e.source, '') AND 
-                          COALESCE(s.guru, '') = COALESCE(e.guru, '')
+        FULL OUTER JOIN end_data e ON s.ticker = e.ticker AND 
+                                     COALESCE(s.source, '') = COALESCE(e.source, '') AND 
+                                     COALESCE(s.guru, '') = COALESCE(e.guru, '')
         WHERE 
+          (s.start_value IS NOT NULL OR e.end_value IS NOT NULL) AND
           CASE
-            WHEN ABS(s.start_value) < 0.01 THEN ABS(e.end_value - s.start_value) >= $${paramCounter}
-            ELSE ABS(((e.end_value - s.start_value) / s.start_value) * 100) >= $${paramCounter}
+            WHEN s.start_value IS NULL OR e.end_value IS NULL THEN true
+            WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN ABS(COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) >= $${paramCounter}
+            ELSE ABS(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100) >= $${paramCounter}
           END
       `;
       
@@ -116,20 +142,35 @@ export class StockAnalysisModel {
       
       // Process the results to ensure proper formatting
       return rows.map(row => {
-        // Convert buy_price from string to number if needed
-        if (metric === 'buy_price' && typeof row.start_value === 'string') {
-          row.start_value = parseFloat(row.start_value.replace(/[^0-9.-]+/g, ''));
-        }
-        if (metric === 'buy_price' && typeof row.end_value === 'string') {
-          row.end_value = parseFloat(row.end_value.replace(/[^0-9.-]+/g, ''));
-        }
-        
         // Ensure numeric values
-        row.start_value = Number(row.start_value);
-        row.end_value = Number(row.end_value);
+        row.start_value = Number(row.start_value || 0);
+        row.end_value = Number(row.end_value || 0);
+        
+        // Calculate change for missing values
+        if (row.change_percent === null) {
+          if (row.start_value === 0 && row.end_value !== 0) {
+            // If we only have end value, mark as 100% increase
+            row.change_percent = 100;
+          } else if (row.start_value !== 0 && row.end_value === 0) {
+            // If we only have start value, mark as 100% decrease
+            row.change_percent = -100;
+          } else {
+            // Both values are available but calculation failed
+            row.change_percent = 0;
+          }
+        }
         
         // Add change property for backward compatibility
         row.change = row.change_percent;
+        
+        // Add status field to indicate data completeness
+        if (row.start_value === 0 && row.end_value !== 0) {
+          row.status = 'missing_start';
+        } else if (row.start_value !== 0 && row.end_value === 0) {
+          row.status = 'missing_end';
+        } else {
+          row.status = 'complete';
+        }
         
         return row;
       });

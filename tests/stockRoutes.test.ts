@@ -620,7 +620,7 @@ describe('Stock Routes', () => {
       expect(response.body[0].guru).toBe('Warren Buffett');
       
       // Check that dates are in ascending order
-      const dates = response.body.map(stock => new Date(stock.date).getTime());
+      const dates = response.body.map((stock: any) => new Date(stock.date).getTime());
       const sortedDates = [...dates].sort((a, b) => a - b);
       expect(dates).toEqual(sortedDates);
     });
