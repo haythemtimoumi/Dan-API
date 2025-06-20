@@ -29,7 +29,7 @@ export class StockAnalysisModel {
     return rows;
   }
   
- async getRecentChanges(
+async getRecentChanges(
   metric: string,
   startDate: string,
   endDate: string,
@@ -88,8 +88,8 @@ export class StockAnalysisModel {
     }
 
     if (guru) {
-      startQuery += ` AND TRIM(LOWER(guru)) = TRIM(LOWER($${paramCounter}))`;
-      endQuery += ` AND TRIM(LOWER(guru)) = TRIM(LOWER($${paramCounter}))`;
+      startQuery += ` AND guru = $${paramCounter}`;
+      endQuery += ` AND guru = $${paramCounter}`;
       params.push(guru);
       paramCounter++;
     }
@@ -129,8 +129,10 @@ export class StockAnalysisModel {
 
     params.push(threshold);
 
-    console.log('\n⚙️ Final SQL Query:', fullQuery);
-    console.log('🧪 With Params:', params);
+    // Log the generated SQL and params for debugging
+    console.log('Executing getRecentChanges with SQL:');
+    console.log(fullQuery);
+    console.log('With parameters:', params);
 
     const { rows } = await pool.query(fullQuery, params);
 
@@ -159,7 +161,7 @@ export class StockAnalysisModel {
       return row;
     });
   } catch (error) {
-    console.error('❌ Error in getRecentChanges:', error);
+    console.error('Error in getRecentChanges:', error);
     throw error;
   }
 }
