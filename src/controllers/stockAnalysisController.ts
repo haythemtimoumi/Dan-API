@@ -118,6 +118,32 @@ export const getStockHistory = async (req: Request, res: Response): Promise<void
     res.status(500).json({ message: 'Failed to fetch stock history' });
   }
 };
+export const getRecentChangesAll = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { metric, start_date, end_date, threshold } = req.query;
+
+    if (!metric || !start_date || !end_date) {
+      res.status(400).json({ message: 'metric, start_date, and end_date are required' });
+      return;
+    }
+
+    const parsedThreshold = threshold ? parseFloat(threshold as string) : 5;
+
+    const model = new StockAnalysisModel();
+    const changes = await model.getRecentChangesAll(
+      metric as string,
+      start_date as string,
+      end_date as string,
+      parsedThreshold
+    );
+
+    res.status(200).json(changes);
+  } catch (error) {
+    console.error('Error in getRecentChangesAll:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 
 export const getStockById = async (req: Request, res: Response): Promise<void> => {
   try {

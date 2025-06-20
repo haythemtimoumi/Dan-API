@@ -15,7 +15,8 @@ import {
   getAllStocksByDateRange,
   getStockHistory,
   getStocksByDateAndSource,
-  getRecentChanges
+  getRecentChanges,
+  getRecentChangesAll
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -23,6 +24,8 @@ const router = Router();
 // GET recent changes in metrics between dates - IMPORTANT: Keep this route first to ensure it matches correctly
 router.get('/recent-changes', getRecentChanges);
 
+// NEW: GET recent changes for all tickers
+router.get('/recent-changes/all', getRecentChangesAll);
 // GET all stocks
 router.get('/', getAllStocks);
 

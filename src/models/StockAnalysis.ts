@@ -163,6 +163,111 @@ export class StockAnalysisModel {
   }
 }
 
+async getRecentChangesAll(
+  metric: string,
+  startDate: string,
+  endDate: string,
+  threshold: number = 5
+): Promise<any[]> {
+  try {
+    const allowedMetrics = ['pe', 'signal_score', 'sentiment_score', 'buy_price'];
+    if (!allowedMetrics.includes(metric)) {
+      throw new Error(`Invalid metric: ${metric}. Must be one of: ${allowedMetrics.join(', ')}`);
+    }
+
+    const columnMap: Record<string, string> = {
+      pe: 'pe',
+      signal_score: 'signal_score',
+      sentiment_score: 'sentiment_score',
+      buy_price: `
+        CASE 
+          WHEN buy_price ~ '^[0-9.]+$' THEN buy_price::numeric
+          ELSE regexp_replace(buy_price, '[^0-9.-]', '', 'g')::numeric
+        END
+      `
+    };
+
+    const metricColumn = columnMap[metric];
+
+    const startQuery = `
+      SELECT ticker, source, guru, ${metricColumn} AS start_value
+      FROM stock_analysis
+      WHERE date::date = $1::date
+    `;
+
+    const endQuery = `
+      SELECT ticker, source, guru, ${metricColumn} AS end_value
+      FROM stock_analysis
+      WHERE date::date = $2::date
+    `;
+
+    const fullQuery = `
+      WITH start_data AS (${startQuery}),
+           end_data AS (${endQuery})
+      SELECT 
+        COALESCE(s.ticker, e.ticker) AS ticker,
+        COALESCE(s.source, e.source) AS source,
+        COALESCE(s.guru, e.guru) AS guru,
+        '${metric}' AS metric,
+        COALESCE(s.start_value, 0) AS start_value,
+        COALESCE(e.end_value, 0) AS end_value,
+        CASE
+          WHEN s.start_value IS NULL OR e.end_value IS NULL THEN NULL
+          WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN (COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0))
+          ELSE ROUND(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100, 2)
+        END AS change_percent
+      FROM start_data s
+      FULL OUTER JOIN end_data e
+        ON s.ticker = e.ticker
+        AND COALESCE(s.source, '') = COALESCE(e.source, '')
+        AND COALESCE(s.guru, '') = COALESCE(e.guru, '')
+      WHERE 
+        (s.start_value IS NOT NULL OR e.end_value IS NOT NULL)
+        AND (
+          s.start_value IS NULL OR e.end_value IS NULL OR
+          (
+            ABS(COALESCE(s.start_value, 0)) < 0.01 
+            AND ABS(COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) >= $3
+          ) OR (
+            ABS(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100) >= $3
+          )
+        )
+    `;
+
+    const params = [startDate, endDate, threshold];
+
+    const { rows } = await pool.query(fullQuery, params);
+
+    return rows.map(row => {
+      row.start_value = Number(row.start_value || 0);
+      row.end_value = Number(row.end_value || 0);
+
+      if (row.change_percent === null) {
+        if (row.start_value === 0 && row.end_value !== 0) {
+          row.change_percent = 100;
+        } else if (row.start_value !== 0 && row.end_value === 0) {
+          row.change_percent = -100;
+        } else {
+          row.change_percent = 0;
+        }
+      }
+
+      row.change = row.change_percent;
+
+      row.status = (row.start_value === 0 && row.end_value !== 0)
+        ? 'missing_start'
+        : (row.start_value !== 0 && row.end_value === 0)
+        ? 'missing_end'
+        : 'complete';
+
+      return row;
+    });
+  } catch (error) {
+    console.error('Error in getRecentChangesAll:', error);
+    throw error;
+  }
+}
+
 
   async getStockHistory(id: number, from?: string, to?: string): Promise<StockAnalysis[]> {
     try {
