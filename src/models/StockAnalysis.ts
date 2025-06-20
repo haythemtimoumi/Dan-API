@@ -29,7 +29,7 @@ export class StockAnalysisModel {
     return rows;
   }
   
-async getRecentChanges(
+  async getRecentChanges(
     metric: string,
     startDate: string,
     endDate: string,
@@ -87,13 +87,12 @@ async getRecentChanges(
         paramCounter++;
       }
 
-if (guru) {
-  startQuery += ` AND guru = $${paramCounter}`;
-  endQuery += ` AND guru = $${paramCounter}`;
-  params.push(guru);
-  paramCounter++;
-}
-
+      if (guru) {
+        startQuery += ` AND guru = $${paramCounter}`;
+        endQuery += ` AND guru = $${paramCounter}`;
+        params.push(guru);
+        paramCounter++;
+      }
 
       const fullQuery = `
         WITH start_data AS (${startQuery}),
@@ -112,9 +111,9 @@ if (guru) {
           END AS change_percent
         FROM start_data s
         FULL OUTER JOIN end_data e
-          ON LOWER(COALESCE(s.ticker, '')) = LOWER(COALESCE(e.ticker, ''))
-          AND LOWER(COALESCE(s.source, '')) = LOWER(COALESCE(e.source, ''))
-          AND LOWER(COALESCE(s.guru, '')) = LOWER(COALESCE(e.guru, ''))
+          ON COALESCE(s.ticker, '') = COALESCE(e.ticker, '')
+          AND COALESCE(s.source, '') = COALESCE(e.source, '')
+          AND COALESCE(s.guru, '') = COALESCE(e.guru, '')
         WHERE 
           (s.start_value IS NOT NULL OR e.end_value IS NOT NULL)
           AND (
