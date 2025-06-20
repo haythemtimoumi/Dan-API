@@ -212,11 +212,11 @@ async getRecentChangesAll(
         s.start_value,
         e.end_value,
         CASE
-          WHEN s.start_value IS NOT NULL AND e.end_value IS NOT NULL AND s.start_value != 0
+          WHEN s.start_value IS NOT NULL AND e.end_value IS NOT NULL AND ABS(s.start_value) >= 0.01
             THEN ROUND(((e.end_value - s.start_value) / s.start_value) * 100, 2)
-          WHEN s.start_value = 0 AND e.end_value IS NOT NULL
+          WHEN ABS(s.start_value) < 0.01 AND ABS(e.end_value) >= $3
             THEN 100
-          WHEN e.end_value = 0 AND s.start_value IS NOT NULL
+          WHEN ABS(e.end_value) < 0.01 AND ABS(s.start_value) >= $3
             THEN -100
           ELSE 0
         END AS change_percent
@@ -230,9 +230,9 @@ async getRecentChangesAll(
         AND (
           s.start_value IS NULL OR e.end_value IS NULL OR
           (
-            s.start_value = 0 AND ABS(e.end_value) >= $3
+            ABS(s.start_value) < 0.01 AND ABS(e.end_value) >= $3
           ) OR (
-            s.start_value != 0 AND ABS(((e.end_value - s.start_value) / s.start_value) * 100) >= $3
+            ABS(s.start_value) >= 0.01 AND ABS(((e.end_value - s.start_value) / s.start_value) * 100) >= $3
           )
         )
     `;
@@ -275,6 +275,7 @@ async getRecentChangesAll(
     throw error;
   }
 }
+
 
 
 
