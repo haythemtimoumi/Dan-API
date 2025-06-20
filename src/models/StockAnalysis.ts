@@ -88,8 +88,8 @@ async getRecentChanges(
     }
 
     if (guru) {
-      startQuery += ` AND guru = $${paramCounter}`;
-      endQuery += ` AND guru = $${paramCounter}`;
+      startQuery += ` AND LOWER(guru) = LOWER($${paramCounter})`;
+      endQuery += ` AND LOWER(guru) = LOWER($${paramCounter})`;
       params.push(guru);
       paramCounter++;
     }
@@ -111,9 +111,9 @@ async getRecentChanges(
         END AS change_percent
       FROM start_data s
       FULL OUTER JOIN end_data e
-        ON COALESCE(s.ticker, '') = COALESCE(e.ticker, '')
-        AND COALESCE(s.source, '') = COALESCE(e.source, '')
-        AND COALESCE(s.guru, '') = COALESCE(e.guru, '')
+        ON LOWER(COALESCE(s.ticker, '')) = LOWER(COALESCE(e.ticker, ''))
+        AND LOWER(COALESCE(s.source, '')) = LOWER(COALESCE(e.source, ''))
+        AND LOWER(COALESCE(s.guru, '')) = LOWER(COALESCE(e.guru, ''))
       WHERE 
         (s.start_value IS NOT NULL OR e.end_value IS NOT NULL)
         AND (
@@ -128,11 +128,6 @@ async getRecentChanges(
     `;
 
     params.push(threshold);
-
-    // Log the generated SQL and params for debugging
-    console.log('Executing getRecentChanges with SQL:');
-    console.log(fullQuery);
-    console.log('With parameters:', params);
 
     const { rows } = await pool.query(fullQuery, params);
 
@@ -165,6 +160,7 @@ async getRecentChanges(
     throw error;
   }
 }
+
 
 async getRecentChangesAll(
   metric: string,
