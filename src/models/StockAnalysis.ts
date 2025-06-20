@@ -87,9 +87,9 @@ async getRecentChanges(
         paramCounter++;
       }
 
-      if (guru) {
-  startQuery += ` AND guru ILIKE $${paramCounter}`;
-  endQuery += ` AND guru ILIKE $${paramCounter}`;
+if (guru) {
+  startQuery += ` AND guru = $${paramCounter}`;
+  endQuery += ` AND guru = $${paramCounter}`;
   params.push(guru);
   paramCounter++;
 }
