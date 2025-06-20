@@ -29,156 +29,140 @@ export class StockAnalysisModel {
     return rows;
   }
   
-  async getRecentChanges(
-    metric: string,
-    startDate: string,
-    endDate: string,
-    threshold: number = 5,
-    ticker?: string,
-    source?: string,
-    guru?: string
-  ): Promise<any[]> {
-    try {
-      // Validate metric is one of the allowed values
-      const allowedMetrics = ['pe', 'signal_score', 'sentiment_score', 'buy_price'];
-      if (!allowedMetrics.includes(metric)) {
-        throw new Error(`Invalid metric: ${metric}. Must be one of: ${allowedMetrics.join(', ')}`);
-      }
-      
-      // Use a parameterized query for the column name by using a CASE statement
-      // This prevents SQL injection by validating the metric against allowed values
-      const metricColumn = `
-        CASE 
-          WHEN $3 = 'pe' THEN pe
-          WHEN $3 = 'signal_score' THEN signal_score
-          WHEN $3 = 'sentiment_score' THEN sentiment_score
-          WHEN $3 = 'buy_price' THEN 
-            CASE 
-              WHEN buy_price ~ '^[0-9.]+$' THEN buy_price::numeric
-              ELSE regexp_replace(buy_price, '[^0-9.-]', '', 'g')::numeric
-            END
-        END
-      `;
-      
-      // Build the base query to get stocks on start date
-      let startQuery = `
-        SELECT 
-          ticker, 
-          source, 
-          guru, 
-          ${metricColumn} as start_value
-        FROM stock_analysis
-        WHERE date::date = $1::date
-      `;
-      
-      // Build the base query to get stocks on end date
-      let endQuery = `
-        SELECT 
-          ticker, 
-          source, 
-          guru, 
-          ${metricColumn} as end_value
-        FROM stock_analysis
-        WHERE date::date = $2::date
-      `;
-      
-      // Add filters if provided
-      const params: any[] = [startDate, endDate, metric];
-      let paramCounter = 4;
-      
-      if (ticker) {
-        startQuery += ` AND ticker = $${paramCounter}`;
-        endQuery += ` AND ticker = $${paramCounter}`;
-        params.push(ticker);
-        paramCounter++;
-      }
-      
-      if (source) {
-        startQuery += ` AND source = $${paramCounter}`;
-        endQuery += ` AND source = $${paramCounter}`;
-        params.push(source);
-        paramCounter++;
-      }
-      
-      if (guru) {
-        startQuery += ` AND guru = $${paramCounter}`;
-        endQuery += ` AND guru = $${paramCounter}`;
-        params.push(guru);
-        paramCounter++;
-      }
-      
-      // Complete the query to join start and end data with improved error handling
-      const fullQuery = `
-        WITH start_data AS (${startQuery}),
-             end_data AS (${endQuery})
-        SELECT 
-          s.ticker,
-          s.source,
-          s.guru,
-          $3 as metric,
-          COALESCE(s.start_value, 0) as start_value,
-          COALESCE(e.end_value, 0) as end_value,
-          CASE
-            WHEN s.start_value IS NULL OR e.end_value IS NULL THEN NULL
-            WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN (COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0))
-            ELSE ROUND(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100, 2)
-          END as change_percent
-        FROM start_data s
-        FULL OUTER JOIN end_data e ON s.ticker = e.ticker AND 
-                                     COALESCE(s.source, '') = COALESCE(e.source, '') AND 
-                                     COALESCE(s.guru, '') = COALESCE(e.guru, '')
-        WHERE 
-          (s.start_value IS NOT NULL OR e.end_value IS NOT NULL) AND
-          CASE
-            WHEN s.start_value IS NULL OR e.end_value IS NULL THEN true
-            WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN ABS(COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) >= $${paramCounter}
-            ELSE ABS(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100) >= $${paramCounter}
-          END
-      `;
-      
-      params.push(threshold);
-      
-      const { rows } = await pool.query(fullQuery, params);
-      
-      // Process the results to ensure proper formatting
-      return rows.map(row => {
-        // Ensure numeric values
-        row.start_value = Number(row.start_value || 0);
-        row.end_value = Number(row.end_value || 0);
-        
-        // Calculate change for missing values
-        if (row.change_percent === null) {
-          if (row.start_value === 0 && row.end_value !== 0) {
-            // If we only have end value, mark as 100% increase
-            row.change_percent = 100;
-          } else if (row.start_value !== 0 && row.end_value === 0) {
-            // If we only have start value, mark as 100% decrease
-            row.change_percent = -100;
-          } else {
-            // Both values are available but calculation failed
-            row.change_percent = 0;
-          }
-        }
-        
-        // Add change property for backward compatibility
-        row.change = row.change_percent;
-        
-        // Add status field to indicate data completeness
-        if (row.start_value === 0 && row.end_value !== 0) {
-          row.status = 'missing_start';
-        } else if (row.start_value !== 0 && row.end_value === 0) {
-          row.status = 'missing_end';
-        } else {
-          row.status = 'complete';
-        }
-        
-        return row;
-      });
-    } catch (error) {
-      console.error('Error in getRecentChanges:', error);
-      throw error;
+ async getRecentChanges(
+  metric: string,
+  startDate: string,
+  endDate: string,
+  threshold: number = 5,
+  ticker?: string,
+  source?: string,
+  guru?: string
+): Promise<any[]> {
+  try {
+    const allowedMetrics = ['pe', 'signal_score', 'sentiment_score', 'buy_price'];
+    if (!allowedMetrics.includes(metric)) {
+      throw new Error(`Invalid metric: ${metric}. Must be one of: ${allowedMetrics.join(', ')}`);
     }
+
+    // Map metric name to SQL-safe column/logic
+    const columnMap: Record<string, string> = {
+      pe: 'pe',
+      signal_score: 'signal_score',
+      sentiment_score: 'sentiment_score',
+      buy_price: `
+        CASE 
+          WHEN buy_price ~ '^[0-9.]+$' THEN buy_price::numeric
+          ELSE regexp_replace(buy_price, '[^0-9.-]', '', 'g')::numeric
+        END
+      `
+    };
+
+    const metricColumn = columnMap[metric];
+
+    // Build base queries
+    let startQuery = `
+      SELECT ticker, source, guru, ${metricColumn} AS start_value
+      FROM stock_analysis
+      WHERE date::date = $1::date
+    `;
+
+    let endQuery = `
+      SELECT ticker, source, guru, ${metricColumn} AS end_value
+      FROM stock_analysis
+      WHERE date::date = $2::date
+    `;
+
+    const params: any[] = [startDate, endDate];
+    let paramCounter = 3;
+
+    if (ticker) {
+      startQuery += ` AND ticker = $${paramCounter}`;
+      endQuery += ` AND ticker = $${paramCounter}`;
+      params.push(ticker);
+      paramCounter++;
+    }
+
+    if (source) {
+      startQuery += ` AND source = $${paramCounter}`;
+      endQuery += ` AND source = $${paramCounter}`;
+      params.push(source);
+      paramCounter++;
+    }
+
+    if (guru) {
+      startQuery += ` AND guru = $${paramCounter}`;
+      endQuery += ` AND guru = $${paramCounter}`;
+      params.push(guru);
+      paramCounter++;
+    }
+
+    const fullQuery = `
+      WITH start_data AS (${startQuery}),
+           end_data AS (${endQuery})
+      SELECT 
+        COALESCE(s.ticker, e.ticker) AS ticker,
+        COALESCE(s.source, e.source) AS source,
+        COALESCE(s.guru, e.guru) AS guru,
+        '${metric}' AS metric,
+        COALESCE(s.start_value, 0) AS start_value,
+        COALESCE(e.end_value, 0) AS end_value,
+        CASE
+          WHEN s.start_value IS NULL OR e.end_value IS NULL THEN NULL
+          WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN (COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0))
+          ELSE ROUND(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100, 2)
+        END AS change_percent
+      FROM start_data s
+      FULL OUTER JOIN end_data e
+        ON s.ticker = e.ticker
+        AND COALESCE(s.source, '') = COALESCE(e.source, '')
+        AND COALESCE(s.guru, '') = COALESCE(e.guru, '')
+      WHERE 
+        (s.start_value IS NOT NULL OR e.end_value IS NOT NULL)
+        AND (
+          s.start_value IS NULL OR e.end_value IS NULL OR
+          (
+            ABS(COALESCE(s.start_value, 0)) < 0.01 
+            AND ABS(COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) >= $${paramCounter}
+          ) OR (
+            ABS(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100) >= $${paramCounter}
+          )
+        )
+    `;
+
+    params.push(threshold);
+
+    const { rows } = await pool.query(fullQuery, params);
+
+    return rows.map(row => {
+      row.start_value = Number(row.start_value || 0);
+      row.end_value = Number(row.end_value || 0);
+
+      if (row.change_percent === null) {
+        if (row.start_value === 0 && row.end_value !== 0) {
+          row.change_percent = 100;
+        } else if (row.start_value !== 0 && row.end_value === 0) {
+          row.change_percent = -100;
+        } else {
+          row.change_percent = 0;
+        }
+      }
+
+      row.change = row.change_percent;
+
+      row.status = (row.start_value === 0 && row.end_value !== 0)
+        ? 'missing_start'
+        : (row.start_value !== 0 && row.end_value === 0)
+        ? 'missing_end'
+        : 'complete';
+
+      return row;
+    });
+  } catch (error) {
+    console.error('Error in getRecentChanges:', error);
+    throw error;
   }
+}
+
 
   async getStockHistory(id: number, from?: string, to?: string): Promise<StockAnalysis[]> {
     try {
