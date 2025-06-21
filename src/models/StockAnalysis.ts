@@ -59,13 +59,13 @@ async getRecentChanges(
     const metricColumn = columnMap[metric];
 
     let startQuery = `
-      SELECT ticker, source, guru, ${metricColumn} AS start_value
+      SELECT LOWER(ticker) AS ticker, LOWER(COALESCE(source, '')) AS source, LOWER(COALESCE(guru, '')) AS guru, ${metricColumn} AS start_value
       FROM stock_analysis
       WHERE date::date = $1::date
     `;
 
     let endQuery = `
-      SELECT ticker, source, guru, ${metricColumn} AS end_value
+      SELECT LOWER(ticker) AS ticker, LOWER(COALESCE(source, '')) AS source, LOWER(COALESCE(guru, '')) AS guru, ${metricColumn} AS end_value
       FROM stock_analysis
       WHERE date::date = $2::date
     `;
@@ -102,27 +102,30 @@ async getRecentChanges(
         COALESCE(s.source, e.source) AS source,
         COALESCE(s.guru, e.guru) AS guru,
         '${metric}' AS metric,
-        COALESCE(s.start_value, 0) AS start_value,
-        COALESCE(e.end_value, 0) AS end_value,
+        s.start_value,
+        e.end_value,
         CASE
-          WHEN s.start_value IS NULL OR e.end_value IS NULL THEN NULL
-          WHEN ABS(COALESCE(s.start_value, 0)) < 0.01 THEN (COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0))
-          ELSE ROUND(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100, 2)
+          WHEN s.start_value IS NOT NULL AND e.end_value IS NOT NULL AND ABS(s.start_value::numeric) >= 0.01
+            THEN ROUND(((e.end_value::numeric - s.start_value::numeric) / NULLIF(s.start_value::numeric, 0)) * 100, 2)
+          WHEN ABS(s.start_value::numeric) < 0.01 AND ABS(e.end_value::numeric) >= $${paramCounter}
+            THEN 100
+          WHEN ABS(e.end_value::numeric) < 0.01 AND ABS(s.start_value::numeric) >= $${paramCounter}
+            THEN -100
+          ELSE 0
         END AS change_percent
       FROM start_data s
       FULL OUTER JOIN end_data e
-        ON LOWER(COALESCE(s.ticker, '')) = LOWER(COALESCE(e.ticker, ''))
-        AND LOWER(COALESCE(s.source, '')) = LOWER(COALESCE(e.source, ''))
-        AND LOWER(COALESCE(s.guru, '')) = LOWER(COALESCE(e.guru, ''))
+        ON s.ticker = e.ticker
+        AND s.source = e.source
+        AND s.guru = e.guru
       WHERE 
         (s.start_value IS NOT NULL OR e.end_value IS NOT NULL)
         AND (
           s.start_value IS NULL OR e.end_value IS NULL OR
           (
-            ABS(COALESCE(s.start_value, 0)) < 0.01 
-            AND ABS(COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) >= $${paramCounter}
+            ABS(s.start_value::numeric) < 0.01 AND ABS(e.end_value::numeric) >= $${paramCounter}
           ) OR (
-            ABS(((COALESCE(e.end_value, 0) - COALESCE(s.start_value, 0)) / NULLIF(COALESCE(s.start_value, 0), 0)) * 100) >= $${paramCounter}
+            ABS(((e.end_value::numeric - s.start_value::numeric) / NULLIF(s.start_value::numeric, 0)) * 100) >= $${paramCounter}
           )
         )
     `;
@@ -132,34 +135,39 @@ async getRecentChanges(
     const { rows } = await pool.query(fullQuery, params);
 
     return rows.map(row => {
-      row.start_value = Number(row.start_value || 0);
-      row.end_value = Number(row.end_value || 0);
+      const start = Number(row.start_value ?? 0);
+      const end = Number(row.end_value ?? 0);
+      let percent = row.change_percent !== null ? Number(row.change_percent) : null;
 
-      if (row.change_percent === null) {
-        if (row.start_value === 0 && row.end_value !== 0) {
-          row.change_percent = 100;
-        } else if (row.start_value !== 0 && row.end_value === 0) {
-          row.change_percent = -100;
-        } else {
-          row.change_percent = 0;
-        }
+      if (percent === null) {
+        if (start === 0 && end !== 0) percent = 100;
+        else if (start !== 0 && end === 0) percent = -100;
+        else percent = 0;
       }
 
-      row.change = row.change_percent;
-
-      row.status = (row.start_value === 0 && row.end_value !== 0)
-        ? 'missing_start'
-        : (row.start_value !== 0 && row.end_value === 0)
-        ? 'missing_end'
-        : 'complete';
-
-      return row;
+      return {
+        ticker: row.ticker.toUpperCase(),
+        source: row.source,
+        guru: row.guru,
+        metric: row.metric,
+        start_value: start,
+        end_value: end,
+        change_percent: percent,
+        change: percent,
+        status:
+          start === 0 && end !== 0
+            ? 'missing_start'
+            : start !== 0 && end === 0
+            ? 'missing_end'
+            : 'complete'
+      };
     });
   } catch (error) {
     console.error('Error in getRecentChanges:', error);
     throw error;
   }
 }
+
 
 
 async getRecentChangesAll(
