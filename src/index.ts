@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import stockRoutes from './routes/stockRoutes';
+import authRoutes from './routes/authRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { testConnection } from './config/db';
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(requestLogger);
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/stocks', stockRoutes);
 
 // Health check endpoint

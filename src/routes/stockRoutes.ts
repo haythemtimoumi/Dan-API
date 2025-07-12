@@ -18,8 +18,14 @@ import {
   getRecentChanges,
   getRecentChangesAll
 } from '../controllers/stockAnalysisController';
+import { authenticateToken, checkWritePermission, validateId, validateStock } from '../middleware/rbac';
 
 const router = Router();
+
+// Apply authentication check to all routes
+router.use(authenticateToken);
+// Apply write permission check to all routes
+router.use(checkWritePermission);
 
 // GET recent changes in metrics between dates - IMPORTANT: Keep this route first to ensure it matches correctly
 router.get('/recent-changes', getRecentChanges);
@@ -63,12 +69,12 @@ router.get('/:id/history', getStockHistory);
 router.get('/:id', getStockById);
 
 // POST create new stock
-router.post('/', createStock);
+router.post('/', validateStock, createStock);
 
 // PUT update stock
-router.put('/:id', updateStock);
+router.put('/:id', validateId, validateStock, updateStock);
 
 // DELETE stock
-router.delete('/:id', deleteStock);
+router.delete('/:id', validateId, deleteStock);
 
 export default router;
