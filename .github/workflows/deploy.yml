@@ -13,10 +13,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js 22
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: '22'  # Match your VPS version (22.16.0)
 
     - name: Set up SSH key
       run: |
@@ -30,6 +30,9 @@ jobs:
         ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -e
 
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
           cd /root/Dan-API
           git pull origin main
 
@@ -40,6 +43,11 @@ jobs:
             npm install -g pm2
           fi
 
-          pm2 start npm --name dan-api -- run start --update-env
+          if pm2 list | grep -q "dan-api"; then
+            pm2 reload dan-api --update-env
+          else
+            pm2 start npm --name dan-api -- run start --update-env
+          fi
+
           pm2 save
         EOF
