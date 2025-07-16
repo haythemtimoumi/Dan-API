@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'https://dan-dashboard-chi.vercel.app',
+  origin: 'https://mytickerlist.com/',
   credentials: true,
 }));
 

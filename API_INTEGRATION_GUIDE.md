@@ -238,7 +238,6 @@ class StockManager {
 ## 🌐 CORS Configuration
 
 The API allows requests from:
-- `https://dan-dashboard-chi.vercel.app`
 - Update CORS settings in backend if using different domain
 
 ## 📝 Notes
