@@ -68,13 +68,13 @@ router.get('/:id/history', getStockHistory);
 // GET stock by ID - IMPORTANT: Keep this route last as it's a catch-all
 router.get('/:id', getStockById);
 
-// POST create new stock
-router.post('/', validateStock, createStock);
+// POST create new stock - require admin role
+router.post('/', validateStock, requireAdmin, createStock);
 
 // PUT update stock
 router.put('/:id', validateId, validateStock, updateStock);
 
-// DELETE stock
-router.delete('/:id', validateId, deleteStock);
+// DELETE stock - require admin role
+router.delete('/:id', validateId, requireAdmin, deleteStock);
 
 export default router;

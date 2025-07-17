@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'https://mytickerlist.com/',
+  origin: '*', // Allow requests from any origin
   credentials: true,
 }));
 
