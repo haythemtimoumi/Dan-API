@@ -1,31 +1,24 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import stockRoutes from './routes/stockRoutes';
 import authRoutes from './routes/authRoutes';
+import tickerRoutes from './routes/tickerRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { testConnection } from './config/db';
 
-// Load environment variables
-dotenv.config();
-
-// Initialize express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // Middleware
-app.use(cors({
-  origin: 'https://wwww.mytickerlist.com/',
-  credentials: true,
-}));
-
+app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/stocks', stockRoutes);
+app.use('/api/tickers', tickerRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -38,7 +31,6 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    // Test database connection
     const dbConnected = await testConnection();
     
     if (!dbConnected) {
