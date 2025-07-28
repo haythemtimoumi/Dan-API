@@ -3,6 +3,7 @@ import cors from 'cors';
 import stockRoutes from './routes/stockRoutes';
 import authRoutes from './routes/authRoutes';
 import tickerRoutes from './routes/tickerRoutes';
+import oldStockRoutes from './routes/oldStockRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { testConnection } from './config/db';
@@ -11,7 +12,8 @@ const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(cors());
+// CORS is handled by nginx proxy, so we don't need it here
+// app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
@@ -19,6 +21,7 @@ app.use(requestLogger);
 app.use('/api/auth', authRoutes);
 app.use('/api/stocks', stockRoutes);
 app.use('/api/tickers', tickerRoutes);
+app.use('/api/oldstock', oldStockRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
