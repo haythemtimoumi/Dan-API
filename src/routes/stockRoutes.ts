@@ -10,26 +10,15 @@ import {
   getDailyChanges,
   getStocksWithSource,
   getHighlightedStocks,
-  getStocksByDateRange,
   getHighlightedStocksByDateRange,
-  getAllStocksByDateRange,
-  getStockHistory,
   getStocksByDateAndSource,
-  getRecentChanges,
-  getRecentChangesAll
+  getAvailableSources,
+  getStocksBySource,
+  getFilterValues
 } from '../controllers/stockAnalysisController';
-import { authenticateToken, checkWritePermission, validateId, validateStock, requireAdmin } from '../middleware/rbac';
 
 const router = Router();
 
-// Apply authentication check to all routes
-router.use(authenticateToken);
-
-// GET recent changes in metrics between dates - IMPORTANT: Keep this route first to ensure it matches correctly
-router.get('/recent-changes', getRecentChanges);
-
-// NEW: GET recent changes for all tickers
-router.get('/recent-changes/all', getRecentChangesAll);
 // GET all stocks
 router.get('/', getAllStocks);
 
@@ -42,17 +31,20 @@ router.get('/with-source', getStocksWithSource);
 // GET daily changes (new, removed, existing)
 router.get('/daily-changes', getDailyChanges);
 
-// GET highlighted stocks
-router.get('/highlighted', getHighlightedStocks);
+// GET available sources - IMPORTANT: Keep before /:id route
+router.get('/sources', getAvailableSources);
 
-// GET highlighted stocks filtered by date range
+// GET stocks by source only - IMPORTANT: Keep before /:id route
+router.get('/by-source', getStocksBySource);
+
+// GET filter values - IMPORTANT: Keep before /:id route
+router.get('/filter-values', getFilterValues);
+
+// GET highlighted stocks filtered by date range - IMPORTANT: Keep before /highlighted
 router.get('/highlighted/filter', getHighlightedStocksByDateRange);
 
-// GET all stocks filtered by date range
-router.get('/filter', getAllStocksByDateRange);
-
-// GET stocks by date range
-router.get('/date-range', getStocksByDateRange);
+// GET highlighted stocks - IMPORTANT: Keep before /:id route
+router.get('/highlighted', getHighlightedStocks);
 
 // GET stocks filtered by date and source
 router.get('/filter-by-date-source', getStocksByDateAndSource);
@@ -60,19 +52,16 @@ router.get('/filter-by-date-source', getStocksByDateAndSource);
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);
 
-// GET stock history by ID
-router.get('/:id/history', getStockHistory);
-
 // GET stock by ID - IMPORTANT: Keep this route last as it's a catch-all
 router.get('/:id', getStockById);
 
-// POST create new stock - require admin role
-router.post('/', validateStock, requireAdmin, createStock);
+// POST create new stock
+router.post('/', createStock);
 
-// PUT update stock - require admin role
-router.put('/:id', validateId, validateStock, requireAdmin, updateStock);
+// PUT update stock
+router.put('/:id', updateStock);
 
-// DELETE stock - require admin role
-router.delete('/:id', validateId, requireAdmin, deleteStock);
+// DELETE stock
+router.delete('/:id', deleteStock);
 
 export default router;
