@@ -14,6 +14,7 @@ import {
   getStocksByDateAndSource,
   getAvailableSources,
   getStocksBySource,
+  getStocksByDateRange,
   getFilterValues
 } from '../controllers/stockAnalysisController';
 
@@ -33,6 +34,9 @@ router.get('/daily-changes', getDailyChanges);
 
 // GET available sources - IMPORTANT: Keep before /:id route
 router.get('/sources', getAvailableSources);
+
+// GET stocks by date range - IMPORTANT: Keep before /:id route
+router.get('/by-date-range', getStocksByDateRange);
 
 // GET stocks by source only - IMPORTANT: Keep before /:id route
 router.get('/by-source', getStocksBySource);

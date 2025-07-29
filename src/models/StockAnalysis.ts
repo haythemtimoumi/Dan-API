@@ -325,6 +325,36 @@ export class StockAnalysisModel {
     }));
   }
 
+  async getStocksByDateRange(startDate?: string, endDate?: string): Promise<StockAnalysis[]> {
+    let query = `
+      SELECT sa.*, g.guru_name as guru
+      FROM stock_analysis sa
+      LEFT JOIN guru g ON sa.guru_id = g.id
+    `;
+    
+    const params: any[] = [];
+    let paramCounter = 1;
+    
+    if (startDate && endDate) {
+      query += ` WHERE sa.date::date >= $${paramCounter}::date AND sa.date::date <= $${paramCounter + 1}::date`;
+      params.push(startDate, endDate);
+    } else if (startDate) {
+      query += ` WHERE sa.date::date >= $${paramCounter}::date`;
+      params.push(startDate);
+    } else if (endDate) {
+      query += ` WHERE sa.date::date <= $${paramCounter}::date`;
+      params.push(endDate);
+    }
+    
+    query += ` ORDER BY sa.sentiment_score DESC`;
+    
+    const { rows } = await pool.query(query, params);
+    return rows.map(row => ({
+      ...row,
+      highlight: row.sentiment_score > 60 && row.signal_score > 80
+    }));
+  }
+
   async getFilterValues(): Promise<{
     list_types: string[];
     statuses: string[];
