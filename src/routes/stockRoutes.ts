@@ -15,7 +15,10 @@ import {
   getAvailableSources,
   getStocksBySource,
   getStocksByDateRange,
-  getFilterValues
+  getLatestStockAnalysis,
+  getFilterValues,
+  getGroupedByTicker,
+  getTickerByGuruGrouped
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -41,8 +44,14 @@ router.get('/by-date-range', getStocksByDateRange);
 // GET stocks by source only - IMPORTANT: Keep before /:id route
 router.get('/by-source', getStocksBySource);
 
+// GET latest stock analysis without duplications - IMPORTANT: Keep before /:id route
+router.get('/latest', getLatestStockAnalysis);
+
 // GET filter values - IMPORTANT: Keep before /:id route
 router.get('/filter-values', getFilterValues);
+
+// GET stocks grouped by ticker with aggregated gurus - IMPORTANT: Keep before /:id route
+router.get('/grouped', getGroupedByTicker);
 
 // GET highlighted stocks filtered by date range - IMPORTANT: Keep before /highlighted
 router.get('/highlighted/filter', getHighlightedStocksByDateRange);
@@ -52,6 +61,9 @@ router.get('/highlighted', getHighlightedStocks);
 
 // GET stocks filtered by date and source
 router.get('/filter-by-date-source', getStocksByDateAndSource);
+
+// GET ticker data grouped by guru with optional date filter
+router.get('/ticker/:ticker/by-guru', getTickerByGuruGrouped);
 
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);

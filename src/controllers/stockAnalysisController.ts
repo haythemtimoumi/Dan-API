@@ -213,12 +213,52 @@ export const getStocksByDateRange = async (req: Request, res: Response): Promise
   }
 };
 
+export const getLatestStockAnalysis = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { guru, list_type } = req.query;
+    const stocks = await stockAnalysisModel.getLatestStockAnalysis(
+      guru as string,
+      list_type as string
+    );
+    res.json(stocks);
+  } catch (error) {
+    console.error('Error fetching latest stock analysis:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const getFilterValues = async (req: Request, res: Response): Promise<void> => {
   try {
     const filterValues = await stockAnalysisModel.getFilterValues();
     res.json(filterValues);
   } catch (error) {
     console.error('Error fetching filter values:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getGroupedByTicker = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+    const stocks = await stockAnalysisModel.getGroupedByTicker(
+      startDate as string,
+      endDate as string
+    );
+    res.json(stocks);
+  } catch (error) {
+    console.error('Error fetching grouped stocks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getTickerByGuruGrouped = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const { date } = req.query;
+    const result = await stockAnalysisModel.getTickerByGuruGrouped(ticker, date as string);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching ticker by guru grouped:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

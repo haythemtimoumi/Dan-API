@@ -28,6 +28,9 @@ export interface StockAnalysis {
   pbt?: string;
   created_at?: string;
   guru?: string;
+  gurus?: string;
+  guru_count?: number;
+  list_type?: string;
   highlight?: boolean;
   status?: 'new' | 'existing' | 'removed';
 }
@@ -355,6 +358,46 @@ export class StockAnalysisModel {
     }));
   }
 
+  async getLatestStockAnalysis(guru?: string, listType?: string): Promise<StockAnalysis[]> {
+    let query = `
+      WITH latest_analysis AS (
+        SELECT sa.*, g.guru_name as guru, st.list_type,
+               ROW_NUMBER() OVER (PARTITION BY sa.ticker, sa.guru_id ORDER BY sa.date DESC, sa.id DESC) as rn
+        FROM stock_analysis sa
+        LEFT JOIN guru g ON sa.guru_id = g.id
+        LEFT JOIN scraper_tasks st ON sa.ticker_id = st.id
+        WHERE 1=1
+    `;
+    
+    const params: any[] = [];
+    let paramCounter = 1;
+    
+    if (guru) {
+      query += ` AND g.guru_name = $${paramCounter}`;
+      params.push(guru);
+      paramCounter++;
+    }
+    
+    if (listType) {
+      query += ` AND st.list_type = $${paramCounter}`;
+      params.push(listType);
+      paramCounter++;
+    }
+    
+    query += `
+      )
+      SELECT * FROM latest_analysis 
+      WHERE rn = 1
+      ORDER BY sentiment_score DESC
+    `;
+    
+    const { rows } = await pool.query(query, params);
+    return rows.map(row => ({
+      ...row,
+      highlight: row.sentiment_score > 60 && row.signal_score > 80
+    }));
+  }
+
   async getFilterValues(): Promise<{
     list_types: string[];
     statuses: string[];
@@ -373,6 +416,120 @@ export class StockAnalysisModel {
       statuses: statuses.rows.map(row => row.scrape_status),
       current_steps: currentSteps.rows.map(row => row.current_step),
       scrape_types: scrapeTypes.rows.map(row => row.scrape_type)
+    };
+  }
+
+  async getGroupedByTicker(startDate?: string, endDate?: string): Promise<StockAnalysis[]> {
+    let dateFilter = '';
+    const params: any[] = [];
+    let paramCounter = 1;
+    
+    if (startDate && endDate) {
+      dateFilter = `WHERE sa.date::date >= $${paramCounter}::date AND sa.date::date <= $${paramCounter + 1}::date`;
+      params.push(startDate, endDate);
+    } else if (startDate) {
+      dateFilter = `WHERE sa.date::date >= $${paramCounter}::date`;
+      params.push(startDate);
+    } else if (endDate) {
+      dateFilter = `WHERE sa.date::date <= $${paramCounter}::date`;
+      params.push(endDate);
+    }
+    
+    const query = `
+      WITH latest_per_ticker AS (
+        SELECT sa.*, g.guru_name,
+               ROW_NUMBER() OVER (PARTITION BY sa.ticker ORDER BY sa.date DESC, sa.id DESC) as rn
+        FROM stock_analysis sa
+        LEFT JOIN guru g ON sa.guru_id = g.id
+        ${dateFilter}
+      ),
+      guru_aggregation AS (
+        SELECT 
+          ticker,
+          STRING_AGG(DISTINCT guru_name, ', ' ORDER BY guru_name) as gurus,
+          COUNT(DISTINCT guru_id) as guru_count
+        FROM stock_analysis sa
+        LEFT JOIN guru g ON sa.guru_id = g.id
+        ${dateFilter}
+        GROUP BY ticker
+      )
+      SELECT 
+        lpt.*,
+        ga.gurus,
+        ga.guru_count
+      FROM latest_per_ticker lpt
+      JOIN guru_aggregation ga ON lpt.ticker = ga.ticker
+      WHERE lpt.rn = 1
+      ORDER BY lpt.sentiment_score DESC NULLS LAST
+    `;
+    
+    const { rows } = await pool.query(query, params);
+    return rows.map(row => ({
+      ...row,
+      highlight: row.sentiment_score > 60 && row.signal_score > 80
+    }));
+  }
+
+  async getTickerByGuruGrouped(ticker: string, date?: string): Promise<any> {
+    let dateFilter = '';
+    const params: any[] = [ticker.toUpperCase()];
+    let paramCounter = 2;
+    
+    if (date) {
+      dateFilter = `AND sa.date::date = $${paramCounter}::date`;
+      params.push(date);
+    }
+    
+    const query = `
+      SELECT 
+        sa.ticker,
+        g.guru_name,
+        g.id as guru_id,
+        COALESCE(st.per_portfolio, '') as per_portfolio,
+        COALESCE(st.last_action, '') as last_action,
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', sa.id,
+            'ticker_id', sa.ticker_id,
+            'guru_id', sa.guru_id,
+            'date', sa.date,
+            'ticker', sa.ticker,
+            'source', sa.source,
+            'pe', sa.pe,
+            'dividend', sa.dividend,
+            'cash_per_share', sa.cash_per_share,
+            'current_ratio', sa.current_ratio,
+            'signal_score', sa.signal_score,
+            'sentiment_score', sa.sentiment_score,
+            'screenshot', sa.screenshot,
+            'rule1_score', sa.rule1_score,
+            'moat_score', sa.moat_score,
+            'management_score', sa.management_score,
+            'buy_price', sa.buy_price,
+            'full_name', sa.full_name,
+            'last_price', sa.last_price,
+            'last_action', sa.last_action,
+            'per_portfolio', sa.per_portfolio,
+            'long_gr', sa.long_gr,
+            'last_gr', sa.last_gr,
+            'per_upside', sa.per_upside,
+            'pbt', sa.pbt,
+            'created_at', sa.created_at
+          ) ORDER BY sa.date DESC, sa.id DESC
+        ) as analyses
+      FROM stock_analysis sa
+      LEFT JOIN guru g ON sa.guru_id = g.id
+      LEFT JOIN scraper_tasks st ON sa.ticker_id = st.id AND st.guru_id = sa.guru_id
+      WHERE sa.ticker = $1 ${dateFilter}
+      GROUP BY sa.ticker, g.guru_name, g.id, st.per_portfolio, st.last_action
+      ORDER BY g.guru_name
+    `;
+    
+    const { rows } = await pool.query(query, params);
+    return {
+      ticker: ticker.toUpperCase(),
+      date: date || 'all',
+      gurus: rows
     };
   }
 }
