@@ -34,6 +34,7 @@ export interface StockAnalysis {
   highlight?: boolean;
   status?: 'new' | 'existing' | 'removed';
   color?: string;
+  target?: boolean;
 }
 
 export class StockAnalysisModel {
@@ -470,14 +471,16 @@ export class StockAnalysisModel {
         lpt.*,
         ga.gurus,
         ga.guru_count,
+        st.target,
         (SELECT c.color 
          FROM comment c 
-         JOIN scraper_tasks st ON c.ticker_id = st.id 
-         WHERE st.symbol = lpt.ticker AND c.color IS NOT NULL 
+         JOIN scraper_tasks st2 ON c.ticker_id = st2.id 
+         WHERE st2.symbol = lpt.ticker AND c.color IS NOT NULL 
          ORDER BY c.created_at DESC 
          LIMIT 1) as color
       FROM latest_per_ticker lpt
       JOIN guru_aggregation ga ON lpt.ticker = ga.ticker
+      LEFT JOIN scraper_tasks st ON lpt.ticker_id = st.id
       WHERE lpt.rn = 1
       ORDER BY lpt.sentiment_score DESC NULLS LAST
     `;
