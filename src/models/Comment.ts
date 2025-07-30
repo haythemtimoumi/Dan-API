@@ -30,7 +30,7 @@ export class CommentModel {
   }
 
   async create(commentData: Comment): Promise<Comment> {
-    const { ticker, user_id, comment } = commentData;
+    const { ticker, user_id, comment, color } = commentData;
     
     // First, get or create ticker_id
     const tickerQuery = `
@@ -53,12 +53,12 @@ export class CommentModel {
     }
     
     const query = `
-      INSERT INTO comment (ticker_id, user_id, comment, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
+      INSERT INTO comment (ticker_id, user_id, comment, color, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
       RETURNING *
     `;
     
-    const values = [ticker_id, user_id || 1, comment];
+    const values = [ticker_id, user_id || 1, comment, color];
     const { rows } = await pool.query(query, values);
     return {
       ...rows[0],
@@ -68,16 +68,16 @@ export class CommentModel {
   }
 
   async update(id: number, commentData: Comment): Promise<Comment | null> {
-    const { comment } = commentData;
+    const { comment, color } = commentData;
     
     const query = `
       UPDATE comment 
-      SET comment = $1, updated_at = NOW()
-      WHERE id = $2
+      SET comment = $1, color = $2, updated_at = NOW()
+      WHERE id = $3
       RETURNING *
     `;
     
-    const { rows } = await pool.query(query, [comment, id]);
+    const { rows } = await pool.query(query, [comment, color, id]);
     return rows.length ? { ...rows[0], comment_text: rows[0].comment } : null;
   }
 
@@ -85,6 +85,42 @@ export class CommentModel {
     const query = 'DELETE FROM comment WHERE id = $1 RETURNING id';
     const { rows } = await pool.query(query, [id]);
     return rows.length > 0;
+  }
+
+  async getLatestColorByTicker(ticker: string): Promise<string | null> {
+    const query = `
+      SELECT c.color 
+      FROM comment c
+      JOIN scraper_tasks st ON c.ticker_id = st.id
+      WHERE st.symbol = $1 AND c.color IS NOT NULL
+      ORDER BY c.created_at DESC
+      LIMIT 1
+    `;
+    const { rows } = await pool.query(query, [ticker.toUpperCase()]);
+    return rows.length > 0 ? rows[0].color : null;
+  }
+
+  async getAllTickerColors(): Promise<{ [ticker: string]: string }> {
+    const query = `
+      WITH latest_colors AS (
+        SELECT 
+          st.symbol as ticker,
+          c.color,
+          ROW_NUMBER() OVER (PARTITION BY st.symbol ORDER BY c.created_at DESC) as rn
+        FROM comment c
+        JOIN scraper_tasks st ON c.ticker_id = st.id
+        WHERE c.color IS NOT NULL
+      )
+      SELECT ticker, color
+      FROM latest_colors
+      WHERE rn = 1
+    `;
+    const { rows } = await pool.query(query);
+    const colorMap: { [ticker: string]: string } = {};
+    rows.forEach(row => {
+      colorMap[row.ticker] = row.color;
+    });
+    return colorMap;
   }
 
   async createTable(): Promise<void> {

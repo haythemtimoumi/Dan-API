@@ -33,12 +33,19 @@ export interface StockAnalysis {
   list_type?: string;
   highlight?: boolean;
   status?: 'new' | 'existing' | 'removed';
+  color?: string;
 }
 
 export class StockAnalysisModel {
   async getAll(): Promise<StockAnalysis[]> {
     const query = `
-      SELECT sa.*, g.guru_name as guru
+      SELECT sa.*, g.guru_name as guru,
+        (SELECT c.color 
+         FROM comment c 
+         JOIN scraper_tasks st ON c.ticker_id = st.id 
+         WHERE st.symbol = sa.ticker AND c.color IS NOT NULL 
+         ORDER BY c.created_at DESC 
+         LIMIT 1) as color
       FROM stock_analysis sa
       LEFT JOIN guru g ON sa.guru_id = g.id
       ORDER BY sa.sentiment_score DESC
@@ -52,7 +59,13 @@ export class StockAnalysisModel {
 
   async getAllSorted(): Promise<StockAnalysis[]> {
     const query = `
-      SELECT sa.*, g.guru_name as guru
+      SELECT sa.*, g.guru_name as guru,
+        (SELECT c.color 
+         FROM comment c 
+         JOIN scraper_tasks st ON c.ticker_id = st.id 
+         WHERE st.symbol = sa.ticker AND c.color IS NOT NULL 
+         ORDER BY c.created_at DESC 
+         LIMIT 1) as color
       FROM stock_analysis sa
       LEFT JOIN guru g ON sa.guru_id = g.id
       ORDER BY sa.sentiment_score DESC
@@ -456,7 +469,13 @@ export class StockAnalysisModel {
       SELECT 
         lpt.*,
         ga.gurus,
-        ga.guru_count
+        ga.guru_count,
+        (SELECT c.color 
+         FROM comment c 
+         JOIN scraper_tasks st ON c.ticker_id = st.id 
+         WHERE st.symbol = lpt.ticker AND c.color IS NOT NULL 
+         ORDER BY c.created_at DESC 
+         LIMIT 1) as color
       FROM latest_per_ticker lpt
       JOIN guru_aggregation ga ON lpt.ticker = ga.ticker
       WHERE lpt.rn = 1

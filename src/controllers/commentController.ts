@@ -14,11 +14,11 @@ export const getCommentsByTicker = async (req: Request, res: Response): Promise<
 
 export const createComment = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { ticker, comment_text, comment, text } = req.body;
+    const { ticker, comment_text, comment, text, color } = req.body;
     const commentText = comment_text || comment || text;
     const tickerSymbol = ticker || req.params.ticker;
     
-    console.log('Create comment request:', { ticker: tickerSymbol, comment_text: commentText, body: req.body });
+    console.log('Create comment request:', { ticker: tickerSymbol, comment_text: commentText, color, body: req.body });
     
     if (!tickerSymbol || !commentText) {
       res.status(400).json({ 
@@ -31,7 +31,8 @@ export const createComment = async (req: Request, res: Response): Promise<void> 
     const commentData: Comment = {
       ticker: tickerSymbol.toUpperCase(),
       user_id: 1, // Default user for now
-      comment: commentText
+      comment: commentText,
+      color: color
     };
 
     const newComment = await commentModel.create(commentData);
@@ -50,13 +51,13 @@ export const updateComment = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { comment_text } = req.body;
+    const { comment_text, color } = req.body;
     if (!comment_text) {
       res.status(400).json({ error: 'Comment text is required' });
       return;
     }
 
-    const updatedComment = await commentModel.update(id, { comment: comment_text } as Comment);
+    const updatedComment = await commentModel.update(id, { comment: comment_text, color } as Comment);
     
     if (!updatedComment) {
       res.status(404).json({ error: 'Comment not found' });
@@ -87,6 +88,27 @@ export const deleteComment = async (req: Request, res: Response): Promise<void> 
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting comment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getTickerColor = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const color = await commentModel.getLatestColorByTicker(ticker);
+    res.json({ ticker, color });
+  } catch (error) {
+    console.error('Error fetching ticker color:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getAllTickerColors = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const colors = await commentModel.getAllTickerColors();
+    res.json(colors);
+  } catch (error) {
+    console.error('Error fetching all ticker colors:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
