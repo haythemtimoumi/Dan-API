@@ -7,13 +7,17 @@ import {
   deleteTicker,
   getGurus,
   getTickersBySymbol,
-  getTickerStats
+  getTickerStats,
+  getMissingAnalysis
 } from '../controllers/tickerController';
 
 const router = Router();
 
 // GET ticker statistics
 router.get('/stats', getTickerStats);
+
+// GET tickers with target=true but no stock analysis
+router.get('/missing-analysis', getMissingAnalysis);
 
 // GET all gurus for combobox
 router.get('/gurus', getGurus);

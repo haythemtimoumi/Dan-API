@@ -133,3 +133,13 @@ export const getTickerStats = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getMissingAnalysis = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tickers = await tickerModel.getMissingAnalysis();
+    res.json(tickers);
+  } catch (error) {
+    console.error('Error fetching missing analysis tickers:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

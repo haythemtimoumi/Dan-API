@@ -155,6 +155,21 @@ export class TickerModel {
     const { rows } = await pool.query(query);
     return parseInt(rows[0].count);
   }
+
+  async getMissingAnalysis(): Promise<{symbol: string, scrape_status: string}[]> {
+    const query = `
+      SELECT st.symbol, st.scrape_status
+      FROM scraper_tasks st
+      WHERE st.target = true
+      AND NOT EXISTS (
+        SELECT 1 FROM stock_analysis sa 
+        WHERE sa.ticker_id = st.id
+      )
+      ORDER BY st.symbol
+    `;
+    const { rows } = await pool.query(query);
+    return rows;
+  }
 }
 
 export default new TickerModel();
