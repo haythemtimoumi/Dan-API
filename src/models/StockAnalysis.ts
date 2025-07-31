@@ -554,6 +554,12 @@ export class StockAnalysisModel {
       gurus: rows
     };
   }
+
+  async getLastDate(): Promise<string | null> {
+    const query = 'SELECT MAX(date) as last_date FROM stock_analysis';
+    const { rows } = await pool.query(query);
+    return rows[0]?.last_date || null;
+  }
 }
 
 export default new StockAnalysisModel();

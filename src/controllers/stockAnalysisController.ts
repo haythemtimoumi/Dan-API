@@ -262,3 +262,13 @@ export const getTickerByGuruGrouped = async (req: Request, res: Response): Promi
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getLastDate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const lastDate = await stockAnalysisModel.getLastDate();
+    res.json({ last_date: lastDate });
+  } catch (error) {
+    console.error('Error fetching last date:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
