@@ -472,12 +472,7 @@ export class StockAnalysisModel {
         ga.gurus,
         ga.guru_count,
         st.target,
-        (SELECT c.color 
-         FROM comment c 
-         JOIN scraper_tasks st2 ON c.ticker_id = st2.id 
-         WHERE st2.symbol = lpt.ticker AND c.color IS NOT NULL 
-         ORDER BY c.created_at DESC 
-         LIMIT 1) as color
+        st.color
       FROM latest_per_ticker lpt
       JOIN guru_aggregation ga ON lpt.ticker = ga.ticker
       LEFT JOIN scraper_tasks st ON lpt.ticker_id = st.id
