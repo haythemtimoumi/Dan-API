@@ -33,4 +33,10 @@ export class ScraperTasksModel {
 
     return { added, updated };
   }
+
+  static async updateColor(id: number, color: string): Promise<boolean> {
+    const query = 'UPDATE scraper_tasks SET color = $1 WHERE id = $2';
+    const result = await pool.query(query, [color, id]);
+    return (result.rowCount ?? 0) > 0;
+  }
 }
