@@ -19,7 +19,8 @@ import {
   getFilterValues,
   getGroupedByTicker,
   getTickerByGuruGrouped,
-  getLastDate
+  getLastDate,
+  getFilteredStocks
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -56,6 +57,9 @@ router.get('/grouped', getGroupedByTicker);
 
 // GET last date available in stock_analysis table - IMPORTANT: Keep before /:id route
 router.get('/last-date', getLastDate);
+
+// GET stocks filtered by sentiment, moat, rule1, and management scores - IMPORTANT: Keep before /:id route
+router.get('/filtered', getFilteredStocks);
 
 // GET highlighted stocks filtered by date range - IMPORTANT: Keep before /highlighted
 router.get('/highlighted/filter', getHighlightedStocksByDateRange);

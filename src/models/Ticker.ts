@@ -170,6 +170,32 @@ export class TickerModel {
     const { rows } = await pool.query(query);
     return rows;
   }
+
+  async getUniqueWithGurus(): Promise<any[]> {
+    const query = `
+      SELECT 
+        st.id,
+        st.symbol,
+        st.list_type,
+        st.scrape_type,
+        st.active,
+        st.current_step,
+        st.scrape_status,
+        st.last_updated_at,
+        st.target,
+        st.color,
+        string_agg(g.guru_name, ', ' ORDER BY g.guru_name) as gurus,
+        array_agg(g.id ORDER BY g.guru_name) as guru_ids
+      FROM scraper_tasks st
+      JOIN guru_ticker_map gtm ON st.id = gtm.scraper_task_id
+      JOIN guru g ON gtm.guru_id = g.id
+      GROUP BY st.id, st.symbol, st.list_type, st.scrape_type, st.active, 
+               st.current_step, st.scrape_status, st.last_updated_at, st.target, st.color
+      ORDER BY st.symbol
+    `;
+    const { rows } = await pool.query(query);
+    return rows;
+  }
 }
 
 export default new TickerModel();

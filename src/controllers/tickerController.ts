@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import tickerModel, { Ticker } from '../models/Ticker';
+import guruTickerModel, { GuruTickerRequest } from '../models/GuruTicker';
 
 export const getAllTickers = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -53,6 +54,25 @@ export const createTicker = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+export const createTickerWithGuru = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const data: GuruTickerRequest = req.body;
+    
+    if (!data.symbol) {
+      res.status(400).json({ error: 'Symbol is required' });
+      return;
+    }
+    
+
+
+    const result = await guruTickerModel.createTickerWithGuru(data);
+    res.status(201).json(result);
+  } catch (error: any) {
+    console.error('Error creating ticker with guru:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const updateTicker = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
@@ -72,6 +92,29 @@ export const updateTicker = async (req: Request, res: Response): Promise<void> =
     res.json(updatedTicker);
   } catch (error) {
     console.error('Error updating ticker:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateTickerWithGuru = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ error: 'Invalid ID format' });
+      return;
+    }
+
+    const data: GuruTickerRequest = req.body;
+    const updatedTicker = await guruTickerModel.updateTickerWithGuru(id, data);
+    
+    if (!updatedTicker) {
+      res.status(404).json({ error: 'Ticker not found' });
+      return;
+    }
+
+    res.json(updatedTicker);
+  } catch (error) {
+    console.error('Error updating ticker with guru:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -140,6 +183,16 @@ export const getMissingAnalysis = async (req: Request, res: Response): Promise<v
     res.json(tickers);
   } catch (error) {
     console.error('Error fetching missing analysis tickers:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getUniqueWithGurus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tickers = await tickerModel.getUniqueWithGurus();
+    res.json(tickers);
+  } catch (error) {
+    console.error('Error fetching unique tickers with gurus:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

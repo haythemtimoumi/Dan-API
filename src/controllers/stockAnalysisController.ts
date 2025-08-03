@@ -272,3 +272,50 @@ export const getLastDate = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getFilteredStocks = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sentiment, moat, rule1, management } = req.query;
+    
+    const filters: {
+      sentiment?: number;
+      moat?: number;
+      rule1?: number;
+      management?: number;
+    } = {};
+    
+    if (sentiment !== undefined) {
+      const sentimentValue = parseFloat(sentiment as string);
+      if (!isNaN(sentimentValue)) {
+        filters.sentiment = sentimentValue;
+      }
+    }
+    
+    if (moat !== undefined) {
+      const moatValue = parseFloat(moat as string);
+      if (!isNaN(moatValue)) {
+        filters.moat = moatValue;
+      }
+    }
+    
+    if (rule1 !== undefined) {
+      const rule1Value = parseFloat(rule1 as string);
+      if (!isNaN(rule1Value)) {
+        filters.rule1 = rule1Value;
+      }
+    }
+    
+    if (management !== undefined) {
+      const managementValue = parseFloat(management as string);
+      if (!isNaN(managementValue)) {
+        filters.management = managementValue;
+      }
+    }
+    
+    const stocks = await stockAnalysisModel.getFilteredStocks(filters);
+    res.json(stocks);
+  } catch (error) {
+    console.error('Error fetching filtered stocks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

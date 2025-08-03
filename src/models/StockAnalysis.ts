@@ -555,6 +555,61 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query);
     return rows[0]?.last_date || null;
   }
+
+  async getFilteredStocks(filters: {
+    sentiment?: number;
+    moat?: number;
+    rule1?: number;
+    management?: number;
+  }): Promise<StockAnalysis[]> {
+    let query = `
+      SELECT sa.*, g.guru_name as guru,
+        (SELECT c.color 
+         FROM comment c 
+         JOIN scraper_tasks st ON c.ticker_id = st.id 
+         WHERE st.symbol = sa.ticker AND c.color IS NOT NULL 
+         ORDER BY c.created_at DESC 
+         LIMIT 1) as color
+      FROM stock_analysis sa
+      LEFT JOIN guru g ON sa.guru_id = g.id
+      WHERE 1=1
+    `;
+    
+    const params: any[] = [];
+    let paramCounter = 1;
+    
+    if (filters.sentiment !== undefined) {
+      query += ` AND sa.sentiment_score > $${paramCounter}`;
+      params.push(filters.sentiment);
+      paramCounter++;
+    }
+    
+    if (filters.moat !== undefined) {
+      query += ` AND sa.moat_score > $${paramCounter}`;
+      params.push(filters.moat);
+      paramCounter++;
+    }
+    
+    if (filters.rule1 !== undefined) {
+      query += ` AND sa.rule1_score > $${paramCounter}`;
+      params.push(filters.rule1);
+      paramCounter++;
+    }
+    
+    if (filters.management !== undefined) {
+      query += ` AND sa.management_score > $${paramCounter}`;
+      params.push(filters.management);
+      paramCounter++;
+    }
+    
+    query += ` ORDER BY sa.sentiment_score DESC`;
+    
+    const { rows } = await pool.query(query, params);
+    return rows.map(row => ({
+      ...row,
+      highlight: row.sentiment_score > 60 && row.signal_score > 80
+    }));
+  }
 }
 
 export default new StockAnalysisModel();
