@@ -472,7 +472,12 @@ export class StockAnalysisModel {
         ga.gurus,
         ga.guru_count,
         st.target,
-        st.color
+        (SELECT c.color 
+         FROM comment c 
+         JOIN scraper_tasks st2 ON c.ticker_id = st2.id 
+         WHERE st2.symbol = lpt.ticker AND c.color IS NOT NULL 
+         ORDER BY c.created_at DESC 
+         LIMIT 1) as color
       FROM latest_per_ticker lpt
       JOIN guru_aggregation ga ON lpt.ticker = ga.ticker
       LEFT JOIN scraper_tasks st ON lpt.ticker_id = st.id
@@ -563,16 +568,18 @@ export class StockAnalysisModel {
     management?: number;
   }): Promise<StockAnalysis[]> {
     let query = `
-      SELECT sa.*, g.guru_name as guru,
+      SELECT DISTINCT sa.*, g.guru_name as guru,
         (SELECT c.color 
          FROM comment c 
-         JOIN scraper_tasks st ON c.ticker_id = st.id 
-         WHERE st.symbol = sa.ticker AND c.color IS NOT NULL 
+         JOIN scraper_tasks st2 ON c.ticker_id = st2.id 
+         WHERE st2.symbol = sa.ticker AND c.color IS NOT NULL 
          ORDER BY c.created_at DESC 
-         LIMIT 1) as color
+         LIMIT 1) as color,
+        COALESCE(st.target, false) as target
       FROM stock_analysis sa
       LEFT JOIN guru g ON sa.guru_id = g.id
-      WHERE 1=1
+      LEFT JOIN scraper_tasks st ON sa.ticker_id = st.id
+      WHERE (st.target = true OR st.target IS NULL)
     `;
     
     const params: any[] = [];
@@ -609,6 +616,20 @@ export class StockAnalysisModel {
       ...row,
       highlight: row.sentiment_score > 60 && row.signal_score > 80
     }));
+  }
+
+  async updateStockColor(ticker: string, color: string): Promise<boolean> {
+    const query = `
+      INSERT INTO comment (ticker_id, color, comment, user_id, created_at)
+      SELECT st.id, $2, 'Color update', 2, NOW()
+      FROM scraper_tasks st
+      WHERE st.symbol = $1
+      LIMIT 1
+      RETURNING id
+    `;
+    
+    const { rows } = await pool.query(query, [ticker, color]);
+    return rows.length > 0;
   }
 }
 

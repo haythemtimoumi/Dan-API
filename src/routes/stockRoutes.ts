@@ -20,7 +20,8 @@ import {
   getGroupedByTicker,
   getTickerByGuruGrouped,
   getLastDate,
-  getFilteredStocks
+  getFilteredStocks,
+  updateStockColor
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -72,6 +73,9 @@ router.get('/filter-by-date-source', getStocksByDateAndSource);
 
 // GET ticker data grouped by guru with optional date filter
 router.get('/ticker/:ticker/by-guru', getTickerByGuruGrouped);
+
+// PUT update stock color
+router.put('/ticker/:ticker/color', updateStockColor);
 
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);

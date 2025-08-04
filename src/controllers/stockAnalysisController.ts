@@ -275,6 +275,7 @@ export const getLastDate = async (req: Request, res: Response): Promise<void> =>
 
 export const getFilteredStocks = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('getFilteredStocks called with query:', req.query);
     const { sentiment, moat, rule1, management } = req.query;
     
     const filters: {
@@ -312,10 +313,36 @@ export const getFilteredStocks = async (req: Request, res: Response): Promise<vo
       }
     }
     
+    console.log('Applied filters:', filters);
     const stocks = await stockAnalysisModel.getFilteredStocks(filters);
+    console.log(`Found ${stocks.length} filtered stocks`);
     res.json(stocks);
   } catch (error) {
     console.error('Error fetching filtered stocks:', error);
+    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' });
+  }
+};
+
+export const updateStockColor = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const { color } = req.body;
+    
+    if (!color) {
+      res.status(400).json({ error: 'Color is required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.updateStockColor(ticker, color);
+    
+    if (!result) {
+      res.status(404).json({ error: 'Stock not found' });
+      return;
+    }
+    
+    res.json({ success: true, ticker, color });
+  } catch (error) {
+    console.error('Error updating stock color:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

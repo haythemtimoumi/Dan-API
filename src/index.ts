@@ -7,6 +7,7 @@ import oldStockRoutes from './routes/oldStockRoutes';
 import commentRoutes from './routes/commentRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import scraperTasksRoutes from './routes/scraperTasksRoutes';
+import guruRoutes from './routes/guruRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { testConnection } from './config/db';
@@ -28,6 +29,7 @@ app.use('/api/oldstock', oldStockRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/scraper-tasks', scraperTasksRoutes);
+app.use('/api', guruRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
