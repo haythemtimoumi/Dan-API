@@ -556,7 +556,7 @@ export class StockAnalysisModel {
   }
 
   async getLastDate(): Promise<string | null> {
-    const query = 'SELECT MAX(date) as last_date FROM stock_analysis';
+    const query = 'SELECT MAX(date)::date as last_date FROM stock_analysis';
     const { rows } = await pool.query(query);
     return rows[0]?.last_date || null;
   }
@@ -630,6 +630,78 @@ export class StockAnalysisModel {
     
     const { rows } = await pool.query(query, [ticker, color]);
     return rows.length > 0;
+  }
+
+  async activateTickersForDan(tickers: string[]): Promise<{
+    success: boolean;
+    activated: string[];
+    added_to_dan: string[];
+    not_found: string[];
+  }> {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Get Dan's guru_id
+      const danQuery = 'SELECT id FROM guru WHERE LOWER(guru_name) = $1';
+      const danResult = await client.query(danQuery, ['dan']);
+      
+      if (danResult.rows.length === 0) {
+        throw new Error('Guru "dan" not found');
+      }
+      
+      const danId = danResult.rows[0].id;
+      const activated: string[] = [];
+      const addedToDan: string[] = [];
+      const notFound: string[] = [];
+      
+      for (const ticker of tickers) {
+        const upperTicker = ticker.toUpperCase();
+        
+        // Check if ticker exists in scraper_tasks
+        const tickerQuery = 'SELECT id FROM scraper_tasks WHERE symbol = $1';
+        const tickerResult = await client.query(tickerQuery, [upperTicker]);
+        
+        if (tickerResult.rows.length === 0) {
+          notFound.push(upperTicker);
+          continue;
+        }
+        
+        const tickerId = tickerResult.rows[0].id;
+        
+        // Update scraper_tasks to set active = true and target = true
+        const updateQuery = 'UPDATE scraper_tasks SET active = true, target = true WHERE id = $1';
+        await client.query(updateQuery, [tickerId]);
+        activated.push(upperTicker);
+        
+        // Check if already in guru_ticker_map for Dan
+        const existingQuery = 'SELECT id FROM guru_ticker_map WHERE guru_id = $1 AND scraper_task_id = $2';
+        const existingResult = await client.query(existingQuery, [danId, tickerId]);
+        
+        if (existingResult.rows.length === 0) {
+          // Add to guru_ticker_map
+          const insertQuery = 'INSERT INTO guru_ticker_map (guru_id, scraper_task_id) VALUES ($1, $2)';
+          await client.query(insertQuery, [danId, tickerId]);
+          addedToDan.push(upperTicker);
+        }
+      }
+      
+      await client.query('COMMIT');
+      
+      return {
+        success: true,
+        activated,
+        added_to_dan: addedToDan,
+        not_found: notFound
+      };
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

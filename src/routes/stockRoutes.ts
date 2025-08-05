@@ -21,7 +21,8 @@ import {
   getTickerByGuruGrouped,
   getLastDate,
   getFilteredStocks,
-  updateStockColor
+  updateStockColor,
+  activateTickersForDan
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -76,6 +77,9 @@ router.get('/ticker/:ticker/by-guru', getTickerByGuruGrouped);
 
 // PUT update stock color
 router.put('/ticker/:ticker/color', updateStockColor);
+
+// POST activate tickers for Dan
+router.post('/activate-for-dan', activateTickersForDan);
 
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);

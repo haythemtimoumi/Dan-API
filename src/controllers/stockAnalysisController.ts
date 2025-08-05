@@ -266,7 +266,8 @@ export const getTickerByGuruGrouped = async (req: Request, res: Response): Promi
 export const getLastDate = async (req: Request, res: Response): Promise<void> => {
   try {
     const lastDate = await stockAnalysisModel.getLastDate();
-    res.json({ last_date: lastDate });
+    const formattedDate = lastDate ? new Date(lastDate).toISOString().split('T')[0] : null;
+    res.json({ last_date: formattedDate });
   } catch (error) {
     console.error('Error fetching last date:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -343,6 +344,23 @@ export const updateStockColor = async (req: Request, res: Response): Promise<voi
     res.json({ success: true, ticker, color });
   } catch (error) {
     console.error('Error updating stock color:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const activateTickersForDan = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { tickers } = req.body;
+    
+    if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
+      res.status(400).json({ error: 'Tickers array is required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.activateTickersForDan(tickers);
+    res.json(result);
+  } catch (error) {
+    console.error('Error activating tickers for Dan:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
