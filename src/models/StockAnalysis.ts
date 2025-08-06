@@ -637,6 +637,7 @@ export class StockAnalysisModel {
     activated: string[];
     added_to_dan: string[];
     not_found: string[];
+    logs: string[];
   }> {
     const client = await pool.connect();
     
@@ -655,6 +656,7 @@ export class StockAnalysisModel {
       const activated: string[] = [];
       const addedToDan: string[] = [];
       const notFound: string[] = [];
+      const logs: string[] = [];
       
       for (const ticker of tickers) {
         const upperTicker = ticker.toUpperCase();
@@ -663,16 +665,26 @@ export class StockAnalysisModel {
         const tickerQuery = 'SELECT id FROM scraper_tasks WHERE symbol = $1';
         const tickerResult = await client.query(tickerQuery, [upperTicker]);
         
+        let tickerId;
+        
         if (tickerResult.rows.length === 0) {
-          notFound.push(upperTicker);
-          continue;
+          // Create new ticker in scraper_tasks
+          const insertQuery = `
+            INSERT INTO scraper_tasks (symbol, guru_id, scrape_type, active, target) 
+            VALUES ($1, $2, 'rule1', true, true) 
+            RETURNING id
+          `;
+          const insertResult = await client.query(insertQuery, [upperTicker, danId]);
+          tickerId = insertResult.rows[0].id;
+          logs.push(`${upperTicker}: ticker added`);
+        } else {
+          tickerId = tickerResult.rows[0].id;
+          // Update existing ticker to set active = true and target = true
+          const updateQuery = 'UPDATE scraper_tasks SET active = true, target = true WHERE id = $1';
+          await client.query(updateQuery, [tickerId]);
+          logs.push(`${upperTicker}: ticker activated`);
         }
         
-        const tickerId = tickerResult.rows[0].id;
-        
-        // Update scraper_tasks to set active = true and target = true
-        const updateQuery = 'UPDATE scraper_tasks SET active = true, target = true WHERE id = $1';
-        await client.query(updateQuery, [tickerId]);
         activated.push(upperTicker);
         
         // Check if already in guru_ticker_map for Dan
@@ -693,7 +705,8 @@ export class StockAnalysisModel {
         success: true,
         activated,
         added_to_dan: addedToDan,
-        not_found: notFound
+        not_found: notFound,
+        logs
       };
       
     } catch (error) {
@@ -702,6 +715,19 @@ export class StockAnalysisModel {
     } finally {
       client.release();
     }
+  }
+
+  async getMissingAnalysis(): Promise<{ symbol: string; scrape_status: string }[]> {
+    const query = `
+      SELECT st.symbol, st.scrape_status 
+      FROM scraper_tasks st 
+      LEFT JOIN stock_analysis sa ON st.id = sa.ticker_id 
+      WHERE st.active = true 
+      AND st.target = true 
+      AND sa.id IS NULL
+    `;
+    const { rows } = await pool.query(query);
+    return rows;
   }
 }
 

@@ -22,7 +22,8 @@ import {
   getLastDate,
   getFilteredStocks,
   updateStockColor,
-  activateTickersForDan
+  activateTickersForDan,
+  getMissingAnalysis
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
