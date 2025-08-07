@@ -375,3 +375,30 @@ export const getMissingAnalysis = async (req: Request, res: Response): Promise<v
   }
 };
 
+export const updateDanTickerInfo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { ticker, last_action, per_portfolio } = req.body;
+    console.log(`[updateDanTickerInfo] Request received - ticker: ${ticker}, last_action: ${last_action}, per_portfolio: ${per_portfolio}`);
+    
+    if (!ticker) {
+      console.log('[updateDanTickerInfo] Error: Ticker is required');
+      res.status(400).json({ error: 'Ticker is required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.updateDanTickerInfo(ticker, last_action, per_portfolio);
+    
+    if (!result) {
+      console.log(`[updateDanTickerInfo] Error: Ticker ${ticker} not found for guru Dan`);
+      res.status(404).json({ error: 'Ticker not found for guru Dan' });
+      return;
+    }
+    
+    console.log(`[updateDanTickerInfo] Success: Updated ticker ${ticker} for Dan`);
+    res.json({ success: true, ticker, last_action, per_portfolio });
+  } catch (error) {
+    console.error('[updateDanTickerInfo] Error updating Dan ticker info:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

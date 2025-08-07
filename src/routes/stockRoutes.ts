@@ -23,7 +23,8 @@ import {
   getFilteredStocks,
   updateStockColor,
   activateTickersForDan,
-  getMissingAnalysis
+  getMissingAnalysis,
+  updateDanTickerInfo
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -81,6 +82,9 @@ router.put('/ticker/:ticker/color', updateStockColor);
 
 // POST activate tickers for Dan
 router.post('/activate-for-dan', activateTickersForDan);
+
+// PUT update Dan ticker info
+router.put('/dan/ticker-info', updateDanTickerInfo);
 
 // GET stocks by ticker
 router.get('/ticker/:ticker', getStocksByTicker);

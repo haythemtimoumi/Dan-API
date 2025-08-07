@@ -729,6 +729,54 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query);
     return rows;
   }
+
+  async updateDanTickerInfo(ticker: string, lastAction?: string, perPortfolio?: string): Promise<boolean> {
+    console.log(`[updateDanTickerInfo] Starting update for ticker: ${ticker}`);
+    
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCounter = 1;
+    
+    if (lastAction !== undefined) {
+      updates.push(`last_action = $${paramCounter}`);
+      values.push(lastAction);
+      paramCounter++;
+      console.log(`[updateDanTickerInfo] Will update last_action to: ${lastAction}`);
+    }
+    
+    if (perPortfolio !== undefined) {
+      updates.push(`per_portfolio = $${paramCounter}`);
+      values.push(perPortfolio);
+      paramCounter++;
+      console.log(`[updateDanTickerInfo] Will update per_portfolio to: ${perPortfolio}`);
+    }
+    
+    if (updates.length === 0) {
+      console.log('[updateDanTickerInfo] No updates provided');
+      return false;
+    }
+    
+    values.push(ticker.toUpperCase());
+    
+    const query = `
+      UPDATE scraper_tasks 
+      SET ${updates.join(', ')}
+      FROM guru g
+      WHERE scraper_tasks.symbol = $${paramCounter} 
+      AND scraper_tasks.guru_id = g.id
+      AND LOWER(g.guru_name) = 'dan'
+      RETURNING scraper_tasks.id
+    `;
+    
+    console.log(`[updateDanTickerInfo] Executing query: ${query}`);
+    console.log(`[updateDanTickerInfo] Query values: ${JSON.stringify(values)}`);
+    
+    const { rows } = await pool.query(query, values);
+    const success = rows.length > 0;
+    
+    console.log(`[updateDanTickerInfo] Query result: ${success ? 'SUCCESS' : 'NO ROWS AFFECTED'}`);
+    return success;
+  }
 }
 
 export default new StockAnalysisModel();
