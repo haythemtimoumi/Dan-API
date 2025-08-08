@@ -777,6 +777,123 @@ export class StockAnalysisModel {
     console.log(`[updateDanTickerInfo] Query result: ${success ? 'SUCCESS' : 'NO ROWS AFFECTED'}`);
     return success;
   }
+
+  async getTickerChanges(fromDate: string, toDate: string): Promise<any[]> {
+    const query = `
+      WITH from_snapshots AS (
+        SELECT DISTINCT ON (ticker) 
+          ticker, signal_score, sentiment_score, rule1_score, moat_score, 
+          management_score, buy_price, last_price, long_gr, last_gr, per_upside, pbt
+        FROM stock_analysis 
+        WHERE date::date = $1::date
+        ORDER BY ticker, created_at DESC
+      ),
+      to_snapshots AS (
+        SELECT DISTINCT ON (ticker) 
+          ticker, signal_score, sentiment_score, rule1_score, moat_score, 
+          management_score, buy_price, last_price, long_gr, last_gr, per_upside, pbt
+        FROM stock_analysis 
+        WHERE date::date = $2::date
+        ORDER BY ticker, created_at DESC
+      )
+      SELECT 
+        f.ticker,
+        CASE 
+          WHEN t.signal_score > f.signal_score THEN 'up'
+          WHEN t.signal_score < f.signal_score THEN 'down'
+          ELSE 'stable'
+        END as signal_change,
+        CASE 
+          WHEN t.sentiment_score > f.sentiment_score THEN 'up'
+          WHEN t.sentiment_score < f.sentiment_score THEN 'down'
+          ELSE 'stable'
+        END as sentiment_change,
+        CASE 
+          WHEN t.rule1_score > f.rule1_score THEN 'up'
+          WHEN t.rule1_score < f.rule1_score THEN 'down'
+          ELSE 'stable'
+        END as rule1_change,
+        CASE 
+          WHEN t.moat_score > f.moat_score THEN 'up'
+          WHEN t.moat_score < f.moat_score THEN 'down'
+          ELSE 'stable'
+        END as moat_change,
+        CASE 
+          WHEN t.management_score > f.management_score THEN 'up'
+          WHEN t.management_score < f.management_score THEN 'down'
+          ELSE 'stable'
+        END as management_change,
+        CASE 
+          WHEN t.buy_price ~ '^[0-9]+(\\.[0-9]+)?$' AND f.buy_price ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.buy_price::NUMERIC > f.buy_price::NUMERIC THEN 'up'
+              WHEN t.buy_price::NUMERIC < f.buy_price::NUMERIC THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as buy_price_change,
+        CASE 
+          WHEN t.buy_price ~ '^[0-9]+(\\.[0-9]+)?$' AND f.buy_price ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.buy_price::NUMERIC * 2 > f.buy_price::NUMERIC * 2 THEN 'up'
+              WHEN t.buy_price::NUMERIC * 2 < f.buy_price::NUMERIC * 2 THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as sticker_price_change,
+        CASE 
+          WHEN t.per_upside ~ '^[0-9]+(\\.[0-9]+)?$' AND f.per_upside ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.per_upside::NUMERIC > f.per_upside::NUMERIC THEN 'up'
+              WHEN t.per_upside::NUMERIC < f.per_upside::NUMERIC THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as upside_change,
+        CASE 
+          WHEN t.last_price ~ '^[0-9]+(\\.[0-9]+)?$' AND f.last_price ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.last_price::NUMERIC > f.last_price::NUMERIC THEN 'up'
+              WHEN t.last_price::NUMERIC < f.last_price::NUMERIC THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as price_change,
+        CASE 
+          WHEN t.long_gr ~ '^[0-9]+(\\.[0-9]+)?$' AND f.long_gr ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.long_gr::NUMERIC > f.long_gr::NUMERIC THEN 'up'
+              WHEN t.long_gr::NUMERIC < f.long_gr::NUMERIC THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as analyst_growth_change,
+        CASE 
+          WHEN t.last_gr ~ '^[0-9]+(\\.[0-9]+)?$' AND f.last_gr ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.last_gr::NUMERIC > f.last_gr::NUMERIC THEN 'up'
+              WHEN t.last_gr::NUMERIC < f.last_gr::NUMERIC THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as composite_growth_change,
+        CASE 
+          WHEN t.pbt ~ '^[0-9]+(\\.[0-9]+)?$' AND f.pbt ~ '^[0-9]+(\\.[0-9]+)?$' THEN
+            CASE 
+              WHEN t.pbt::NUMERIC > f.pbt::NUMERIC THEN 'up'
+              WHEN t.pbt::NUMERIC < f.pbt::NUMERIC THEN 'down'
+              ELSE 'stable'
+            END
+          ELSE 'stable'
+        END as pbt_change
+      FROM from_snapshots f
+      INNER JOIN to_snapshots t ON f.ticker = t.ticker
+      ORDER BY f.ticker
+    `;
+    
+    const { rows } = await pool.query(query, [fromDate, toDate]);
+    return rows;
+  }
 }
 
 export default new StockAnalysisModel();

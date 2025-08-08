@@ -402,3 +402,20 @@ export const updateDanTickerInfo = async (req: Request, res: Response): Promise<
   }
 };
 
+export const getTickerChanges = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { from, to } = req.query;
+    
+    if (!from || !to) {
+      res.status(400).json({ error: 'Both from and to date parameters are required' });
+      return;
+    }
+    
+    const changes = await stockAnalysisModel.getTickerChanges(from as string, to as string);
+    res.json(changes);
+  } catch (error) {
+    console.error('Error fetching ticker changes:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
