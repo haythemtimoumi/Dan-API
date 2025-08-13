@@ -419,3 +419,14 @@ export const getTickerChanges = async (req: Request, res: Response): Promise<voi
   }
 };
 
+export const getGuruPortfolios = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { date } = req.params;
+    const portfolios = await stockAnalysisModel.getGuruPortfolios(date === 'latest' ? null : date);
+    res.json(portfolios);
+  } catch (error) {
+    console.error('Error fetching guru portfolios:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

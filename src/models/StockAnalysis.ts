@@ -894,6 +894,81 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query, [fromDate, toDate]);
     return rows;
   }
+
+  async getGuruPortfolios(date?: string | null): Promise<any> {
+    const dateFilter = date ? 'WHERE DATE(sa.date) = $1' : 'WHERE DATE(sa.date) = (SELECT MAX(DATE(date)) FROM stock_analysis)';
+    const params = date ? [date] : [];
+    
+    const query = `
+      SELECT 
+        g.id as guru_id,
+        g.guru_name,
+        sa.ticker_id,
+        sa.ticker,
+        sa.signal_score,
+        sa.sentiment_score,
+        sa.rule1_score,
+        sa.moat_score,
+        sa.management_score,
+        sa.buy_price,
+        sa.per_upside,
+        sa.last_price,
+        sa.last_gr,
+        sa.long_gr,
+        sa.last_action,
+        sa.per_portfolio,
+        DATE(sa.date) as analysis_date
+      FROM guru g
+      JOIN stock_analysis sa ON g.id = sa.guru_id
+      ${dateFilter}
+      ORDER BY g.guru_name, sa.ticker
+    `;
+    
+    const { rows } = await pool.query(query, params);
+    
+    // Get the actual date used
+    const actualDate = rows.length > 0 ? rows[0].analysis_date : null;
+    
+    // Group by guru
+    const guruMap = new Map();
+    
+    rows.forEach(row => {
+      if (!guruMap.has(row.guru_id)) {
+        guruMap.set(row.guru_id, {
+          guru_name: row.guru_name,
+          guru_id: row.guru_id,
+          stocks: []
+        });
+      }
+      
+      guruMap.get(row.guru_id).stocks.push({
+        ticker_id: row.ticker_id,
+        ticker: row.ticker,
+        signal: row.signal_score,
+        sentiment: row.sentiment_score,
+        rule1_score: row.rule1_score,
+        moat_score: row.moat_score,
+        management_score: row.management_score,
+        buy_price: row.buy_price,
+        upside_percent: row.per_upside,
+        current_price: row.last_price,
+        analyst_growth: row.last_gr,
+        composite_growth: row.long_gr,
+        last_action: row.last_action,
+        portfolio_percent: row.per_portfolio
+      });
+    });
+    
+    const gurus = Array.from(guruMap.values());
+    const totalStocks = rows.length;
+    
+    return {
+      date: actualDate,
+      total_gurus: gurus.length,
+      total_stocks: totalStocks,
+      gurus
+    };
+  }
 }
 
 export default new StockAnalysisModel();

@@ -25,7 +25,8 @@ import {
   activateTickersForDan,
   getMissingAnalysis,
   updateDanTickerInfo,
-  getTickerChanges
+  getTickerChanges,
+  getGuruPortfolios
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -68,6 +69,9 @@ router.get('/filtered', getFilteredStocks);
 
 // GET ticker changes between two dates - IMPORTANT: Keep before /:id route
 router.get('/tickers/changes', getTickerChanges);
+
+// GET guru portfolios by date - IMPORTANT: Keep before /:id route
+router.get('/gurus/portfolios/:date', getGuruPortfolios);
 
 // GET highlighted stocks filtered by date range - IMPORTANT: Keep before /highlighted
 router.get('/highlighted/filter', getHighlightedStocksByDateRange);
