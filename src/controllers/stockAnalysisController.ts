@@ -430,3 +430,24 @@ export const getGuruPortfolios = async (req: Request, res: Response): Promise<vo
   }
 };
 
+export const getCompanyInfo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tickerId = parseInt(req.params.tickerId);
+    if (isNaN(tickerId)) {
+      res.status(400).json({ error: 'Invalid ticker ID format' });
+      return;
+    }
+
+    const companyInfo = await stockAnalysisModel.getCompanyInfo(tickerId);
+    if (!companyInfo) {
+      res.status(404).json({ error: 'Company not found' });
+      return;
+    }
+
+    res.json(companyInfo);
+  } catch (error) {
+    console.error('Error fetching company info:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

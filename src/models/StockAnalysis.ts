@@ -969,6 +969,29 @@ export class StockAnalysisModel {
       gurus
     };
   }
+
+  async getCompanyInfo(tickerId: number): Promise<any | null> {
+    const query = `
+      SELECT 
+        id,
+        symbol,
+        business_description,
+        address,
+        website,
+        ir_phone_number,
+        email_address,
+        year_established,
+        fiscal_year_end,
+        ceo,
+        number_of_employees,
+        sp
+      FROM scraper_tasks 
+      WHERE id = $1
+    `;
+    
+    const { rows } = await pool.query(query, [tickerId]);
+    return rows.length ? rows[0] : null;
+  }
 }
 
 export default new StockAnalysisModel();
