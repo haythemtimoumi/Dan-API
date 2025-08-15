@@ -432,13 +432,8 @@ export const getGuruPortfolios = async (req: Request, res: Response): Promise<vo
 
 export const getCompanyInfo = async (req: Request, res: Response): Promise<void> => {
   try {
-    const tickerId = parseInt(req.params.tickerId);
-    if (isNaN(tickerId)) {
-      res.status(400).json({ error: 'Invalid ticker ID format' });
-      return;
-    }
-
-    const companyInfo = await stockAnalysisModel.getCompanyInfo(tickerId);
+    const symbol = req.params.symbol.toUpperCase();
+    const companyInfo = await stockAnalysisModel.getCompanyInfo(symbol);
     if (!companyInfo) {
       res.status(404).json({ error: 'Company not found' });
       return;

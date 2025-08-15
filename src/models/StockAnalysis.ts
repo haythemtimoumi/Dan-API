@@ -970,7 +970,7 @@ export class StockAnalysisModel {
     };
   }
 
-  async getCompanyInfo(tickerId: number): Promise<any | null> {
+  async getCompanyInfo(symbol: string): Promise<any | null> {
     const query = `
       SELECT 
         id,
@@ -986,10 +986,10 @@ export class StockAnalysisModel {
         number_of_employees,
         sp
       FROM scraper_tasks 
-      WHERE id = $1
+      WHERE symbol = $1
     `;
     
-    const { rows } = await pool.query(query, [tickerId]);
+    const { rows } = await pool.query(query, [symbol]);
     return rows.length ? rows[0] : null;
   }
 }
