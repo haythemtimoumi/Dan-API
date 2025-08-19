@@ -446,3 +446,30 @@ export const getCompanyInfo = async (req: Request, res: Response): Promise<void>
   }
 };
 
+export const getAllWithTickerInfo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const stocks = await stockAnalysisModel.getAllWithTickerInfo();
+    res.json(stocks);
+  } catch (error) {
+    console.error('Error fetching all stocks with ticker info:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getByTickerAndDate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { ticker, date } = req.query;
+    
+    if (!ticker || !date) {
+      res.status(400).json({ error: 'Both ticker and date parameters are required' });
+      return;
+    }
+    
+    const stocks = await stockAnalysisModel.getByTickerAndDate(ticker as string, date as string);
+    res.json(stocks);
+  } catch (error) {
+    console.error('Error fetching stocks by ticker and date:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

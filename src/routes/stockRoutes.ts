@@ -27,10 +27,18 @@ import {
   updateDanTickerInfo,
   getTickerChanges,
   getGuruPortfolios,
-  getCompanyInfo
+  getCompanyInfo,
+  getAllWithTickerInfo,
+  getByTickerAndDate
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
+
+// GET stocks by ticker and date with ticker info
+router.get('/by-ticker-date', getByTickerAndDate);
+
+// GET all stocks with ticker info from scraper_tasks
+router.get('/with-ticker-info', getAllWithTickerInfo);
 
 // GET all stocks
 router.get('/', getAllStocks);

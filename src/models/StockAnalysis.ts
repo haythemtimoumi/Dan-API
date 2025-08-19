@@ -992,6 +992,37 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query, [symbol]);
     return rows.length ? rows[0] : null;
   }
+
+  async getAllWithTickerInfo(): Promise<StockAnalysis[]> {
+    const query = `
+      SELECT 
+        sa.*,
+        st.symbol as ticker_symbol,
+        g.guru_name as guru
+      FROM stock_analysis sa
+      LEFT JOIN scraper_tasks st ON sa.ticker_id = st.id
+      LEFT JOIN guru g ON sa.guru_id = g.id
+      ORDER BY sa.date DESC, sa.created_at DESC
+    `;
+    const { rows } = await pool.query(query);
+    return rows;
+  }
+
+  async getByTickerAndDate(ticker: string, date: string): Promise<StockAnalysis[]> {
+    const query = `
+      SELECT 
+        sa.*,
+        st.symbol as ticker_symbol,
+        g.guru_name as guru
+      FROM stock_analysis sa
+      LEFT JOIN scraper_tasks st ON sa.ticker_id = st.id
+      LEFT JOIN guru g ON sa.guru_id = g.id
+      WHERE sa.ticker = $1 AND DATE(sa.date) = $2
+      ORDER BY sa.created_at DESC
+    `;
+    const { rows } = await pool.query(query, [ticker.toUpperCase(), date]);
+    return rows;
+  }
 }
 
 export default new StockAnalysisModel();
