@@ -1023,6 +1023,55 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query, [ticker.toUpperCase(), date]);
     return rows;
   }
+
+  async getCompaniesWithAnalysis(date?: string): Promise<any[]> {
+    if (date) {
+      // Query for specific date
+      const query = `
+        SELECT 
+          c.*,
+          sa.signal_score,
+          sa.sentiment_score,
+          sa.date as analysis_date,
+          sa.created_at as analysis_created_at
+        FROM company c
+        LEFT JOIN scraper_tasks st ON c.ticker_id = st.id
+        LEFT JOIN LATERAL (
+          SELECT signal_score, sentiment_score, date, created_at
+          FROM stock_analysis 
+          WHERE stock_analysis.ticker = st.symbol 
+          AND DATE(stock_analysis.date) = $1
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) sa ON true
+        ORDER BY sa.created_at DESC NULLS LAST, c.created_at DESC
+      `;
+      const { rows } = await pool.query(query, [date]);
+      return rows;
+    } else {
+      // Query for latest analysis (no date filter)
+      const query = `
+        SELECT 
+          c.*,
+          sa.signal_score,
+          sa.sentiment_score,
+          sa.date as analysis_date,
+          sa.created_at as analysis_created_at
+        FROM company c
+        LEFT JOIN scraper_tasks st ON c.ticker_id = st.id
+        LEFT JOIN LATERAL (
+          SELECT signal_score, sentiment_score, date, created_at
+          FROM stock_analysis 
+          WHERE stock_analysis.ticker = st.symbol
+          ORDER BY date DESC, created_at DESC
+          LIMIT 1
+        ) sa ON true
+        ORDER BY sa.date DESC NULLS LAST, sa.created_at DESC NULLS LAST, c.created_at DESC
+      `;
+      const { rows } = await pool.query(query);
+      return rows;
+    }
+  }
 }
 
 export default new StockAnalysisModel();

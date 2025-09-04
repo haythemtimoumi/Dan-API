@@ -473,3 +473,14 @@ export const getByTickerAndDate = async (req: Request, res: Response): Promise<v
   }
 };
 
+export const getCompaniesWithAnalysis = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { date } = req.query;
+    const companies = await stockAnalysisModel.getCompaniesWithAnalysis(date as string);
+    res.json(companies);
+  } catch (error) {
+    console.error('Error fetching companies with analysis:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

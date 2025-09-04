@@ -29,10 +29,14 @@ import {
   getGuruPortfolios,
   getCompanyInfo,
   getAllWithTickerInfo,
-  getByTickerAndDate
+  getByTickerAndDate,
+  getCompaniesWithAnalysis
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
+
+// GET all companies with latest analysis data
+router.get('/companies-with-analysis', getCompaniesWithAnalysis);
 
 // GET stocks by ticker and date with ticker info
 router.get('/by-ticker-date', getByTickerAndDate);
