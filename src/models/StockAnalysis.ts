@@ -1026,7 +1026,7 @@ export class StockAnalysisModel {
 
   async getCompaniesWithAnalysis(date?: string): Promise<any[]> {
     if (date) {
-      // Query for specific date
+      // Query for specific date - filter companies by creation date
       const query = `
         SELECT 
           c.*,
@@ -1046,6 +1046,7 @@ export class StockAnalysisModel {
           ORDER BY created_at DESC
           LIMIT 1
         ) sa ON true
+        WHERE DATE(c.created_at) = $1
         ORDER BY sa.created_at DESC NULLS LAST, c.created_at DESC
       `;
       const { rows } = await pool.query(query, [date]);
