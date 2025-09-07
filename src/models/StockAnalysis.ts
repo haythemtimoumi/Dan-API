@@ -1030,6 +1030,8 @@ export class StockAnalysisModel {
       const query = `
         SELECT 
           c.*,
+          c.company_url,
+          c.company_email,
           sa.signal_score,
           sa.sentiment_score,
           sa.date as analysis_date,
@@ -1053,6 +1055,8 @@ export class StockAnalysisModel {
       const query = `
         SELECT 
           c.*,
+          c.company_url,
+          c.company_email,
           sa.signal_score,
           sa.sentiment_score,
           sa.date as analysis_date,
