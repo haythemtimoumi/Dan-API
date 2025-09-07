@@ -1077,6 +1077,12 @@ export class StockAnalysisModel {
       return rows;
     }
   }
+
+  async getRecentCompanyDate(): Promise<string | null> {
+    const query = 'SELECT MAX(DATE(created_at)) as recent_date FROM company';
+    const { rows } = await pool.query(query);
+    return rows[0]?.recent_date || null;
+  }
 }
 
 export default new StockAnalysisModel();

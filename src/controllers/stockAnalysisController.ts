@@ -484,3 +484,13 @@ export const getCompaniesWithAnalysis = async (req: Request, res: Response): Pro
   }
 };
 
+export const getRecentCompanyDate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const recentDate = await stockAnalysisModel.getRecentCompanyDate();
+    res.json({ recent_date: recentDate });
+  } catch (error) {
+    console.error('Error fetching recent company date:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
