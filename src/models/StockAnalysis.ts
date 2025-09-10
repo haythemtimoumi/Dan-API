@@ -1026,68 +1026,82 @@ export class StockAnalysisModel {
 
   async getCompaniesWithAnalysis(date?: string): Promise<any[]> {
     if (date) {
-      // Query for specific date - filter companies by creation date
+      // Query for specific date - get latest company and analysis per ticker_id
       const query = `
+        WITH latest_analysis AS (
+          SELECT DISTINCT ON (ticker_id) 
+            ticker_id, signal_score, sentiment_score, date, created_at
+          FROM stock_analysis 
+          WHERE DATE(date) <= $1
+          ORDER BY ticker_id, date DESC, created_at DESC
+        ),
+        latest_company AS (
+          SELECT DISTINCT ON (ticker_id)
+            *
+          FROM company
+          WHERE DATE(created_at) = $1
+          ORDER BY ticker_id, created_at DESC
+        )
         SELECT 
-          c.*,
-          c.company_url,
-          c.company_email,
-          sa.signal_score,
-          sa.sentiment_score,
-          sa.date as analysis_date,
-          sa.created_at as analysis_created_at,
-          slc.categories
-        FROM company c
-        LEFT JOIN scraper_tasks st ON c.ticker_id = st.id
+          lc.*,
+          lc.company_url,
+          lc.company_email,
+          la.signal_score,
+          la.sentiment_score,
+          la.date as analysis_date,
+          la.created_at as analysis_created_at,
+          slc.categories,
+          st.target
+        FROM latest_company lc
+        LEFT JOIN scraper_tasks st ON lc.ticker_id = st.id
         LEFT JOIN (
           SELECT 
             ticker_id, 
             ARRAY_AGG(category_name ORDER BY category_name) as categories
           FROM stock_list_categories 
           GROUP BY ticker_id
-        ) slc ON c.ticker_id = slc.ticker_id
-        LEFT JOIN LATERAL (
-          SELECT signal_score, sentiment_score, date, created_at
-          FROM stock_analysis 
-          WHERE stock_analysis.ticker = st.symbol 
-          AND DATE(stock_analysis.date) = $1
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) sa ON true
-        WHERE DATE(c.created_at) = $1
-        ORDER BY sa.created_at DESC NULLS LAST, c.created_at DESC
+        ) slc ON lc.ticker_id = slc.ticker_id
+        LEFT JOIN latest_analysis la ON lc.ticker_id = la.ticker_id
+        ORDER BY la.created_at DESC NULLS LAST, lc.created_at DESC
       `;
       const { rows } = await pool.query(query, [date]);
       return rows;
     } else {
-      // Query for latest analysis (no date filter)
+      // Query for latest analysis and company per ticker_id (no date filter)
       const query = `
+        WITH latest_analysis AS (
+          SELECT DISTINCT ON (ticker_id) 
+            ticker_id, signal_score, sentiment_score, date, created_at
+          FROM stock_analysis 
+          ORDER BY ticker_id, date DESC, created_at DESC
+        ),
+        latest_company AS (
+          SELECT DISTINCT ON (ticker_id)
+            *
+          FROM company
+          ORDER BY ticker_id, created_at DESC
+        )
         SELECT 
-          c.*,
-          c.company_url,
-          c.company_email,
-          sa.signal_score,
-          sa.sentiment_score,
-          sa.date as analysis_date,
-          sa.created_at as analysis_created_at,
-          slc.categories
-        FROM company c
-        LEFT JOIN scraper_tasks st ON c.ticker_id = st.id
+          lc.*,
+          lc.company_url,
+          lc.company_email,
+          la.signal_score,
+          la.sentiment_score,
+          la.date as analysis_date,
+          la.created_at as analysis_created_at,
+          slc.categories,
+          st.target
+        FROM latest_company lc
+        LEFT JOIN scraper_tasks st ON lc.ticker_id = st.id
         LEFT JOIN (
           SELECT 
             ticker_id, 
             ARRAY_AGG(category_name ORDER BY category_name) as categories
           FROM stock_list_categories 
           GROUP BY ticker_id
-        ) slc ON c.ticker_id = slc.ticker_id
-        LEFT JOIN LATERAL (
-          SELECT signal_score, sentiment_score, date, created_at
-          FROM stock_analysis 
-          WHERE stock_analysis.ticker = st.symbol
-          ORDER BY date DESC, created_at DESC
-          LIMIT 1
-        ) sa ON true
-        ORDER BY sa.date DESC NULLS LAST, sa.created_at DESC NULLS LAST, c.created_at DESC
+        ) slc ON lc.ticker_id = slc.ticker_id
+        LEFT JOIN latest_analysis la ON lc.ticker_id = la.ticker_id
+        ORDER BY la.date DESC NULLS LAST, la.created_at DESC NULLS LAST, lc.created_at DESC
       `;
       const { rows } = await pool.query(query);
       return rows;
