@@ -1035,9 +1035,17 @@ export class StockAnalysisModel {
           sa.signal_score,
           sa.sentiment_score,
           sa.date as analysis_date,
-          sa.created_at as analysis_created_at
+          sa.created_at as analysis_created_at,
+          slc.categories
         FROM company c
         LEFT JOIN scraper_tasks st ON c.ticker_id = st.id
+        LEFT JOIN (
+          SELECT 
+            ticker_id, 
+            ARRAY_AGG(category_name ORDER BY category_name) as categories
+          FROM stock_list_categories 
+          GROUP BY ticker_id
+        ) slc ON c.ticker_id = slc.ticker_id
         LEFT JOIN LATERAL (
           SELECT signal_score, sentiment_score, date, created_at
           FROM stock_analysis 
@@ -1061,9 +1069,17 @@ export class StockAnalysisModel {
           sa.signal_score,
           sa.sentiment_score,
           sa.date as analysis_date,
-          sa.created_at as analysis_created_at
+          sa.created_at as analysis_created_at,
+          slc.categories
         FROM company c
         LEFT JOIN scraper_tasks st ON c.ticker_id = st.id
+        LEFT JOIN (
+          SELECT 
+            ticker_id, 
+            ARRAY_AGG(category_name ORDER BY category_name) as categories
+          FROM stock_list_categories 
+          GROUP BY ticker_id
+        ) slc ON c.ticker_id = slc.ticker_id
         LEFT JOIN LATERAL (
           SELECT signal_score, sentiment_score, date, created_at
           FROM stock_analysis 
