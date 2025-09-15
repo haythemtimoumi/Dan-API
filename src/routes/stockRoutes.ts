@@ -31,7 +31,8 @@ import {
   getAllWithTickerInfo,
   getByTickerAndDate,
   getCompaniesWithAnalysis,
-  getRecentCompanyDate
+  getRecentCompanyDate,
+  getTickersWithViewByDate
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -41,6 +42,9 @@ router.get('/companies-with-analysis', getCompaniesWithAnalysis);
 
 // GET most recent company creation date
 router.get('/companies/recent-date', getRecentCompanyDate);
+
+// GET tickers with ticker_view and stock_ticker by date
+router.get('/tickers-with-view', getTickersWithViewByDate);
 
 // GET stocks by ticker and date with ticker info
 router.get('/by-ticker-date', getByTickerAndDate);

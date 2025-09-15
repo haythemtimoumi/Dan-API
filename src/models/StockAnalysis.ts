@@ -1113,6 +1113,30 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query);
     return rows[0]?.recent_date || null;
   }
+
+  async getTickersWithViewByDate(date?: string): Promise<any[]> {
+    let query = `
+      SELECT 
+        symbol,
+        stock_ticker,
+        ticker_view,
+        last_updated_at
+      FROM scraper_tasks
+      WHERE ticker_view IS NOT NULL OR stock_ticker IS NOT NULL
+    `;
+    
+    const params: any[] = [];
+    
+    if (date) {
+      query += ` AND DATE(last_updated_at) = $1`;
+      params.push(date);
+    }
+    
+    query += ` ORDER BY last_updated_at DESC`;
+    
+    const { rows } = await pool.query(query, params);
+    return rows;
+  }
 }
 
 export default new StockAnalysisModel();

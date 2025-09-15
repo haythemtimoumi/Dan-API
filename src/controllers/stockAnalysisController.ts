@@ -494,3 +494,14 @@ export const getRecentCompanyDate = async (req: Request, res: Response): Promise
   }
 };
 
+export const getTickersWithViewByDate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { date } = req.query;
+    const tickers = await stockAnalysisModel.getTickersWithViewByDate(date as string);
+    res.json(tickers);
+  } catch (error) {
+    console.error('Error fetching tickers with view by date:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
