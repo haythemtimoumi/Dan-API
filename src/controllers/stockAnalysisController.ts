@@ -510,7 +510,7 @@ export const updateTickerView = async (req: Request, res: Response): Promise<voi
     const ticker = req.params.ticker.toUpperCase();
     const { ticker_view } = req.body;
     
-    if (!ticker_view) {
+    if (ticker_view === undefined) {
       res.status(400).json({ error: 'ticker_view is required' });
       return;
     }
@@ -534,12 +534,13 @@ export const updateStockTicker = async (req: Request, res: Response): Promise<vo
     const ticker = req.params.ticker.toUpperCase();
     const { stock_ticker } = req.body;
     
-    if (!stock_ticker) {
+    if (stock_ticker === undefined) {
       res.status(400).json({ error: 'stock_ticker is required' });
       return;
     }
     
     const result = await stockAnalysisModel.updateStockTicker(ticker, stock_ticker);
+    
     
     if (!result) {
       res.status(404).json({ error: 'Ticker not found' });
