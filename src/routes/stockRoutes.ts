@@ -32,7 +32,9 @@ import {
   getByTickerAndDate,
   getCompaniesWithAnalysis,
   getRecentCompanyDate,
-  getTickersWithViewByDate
+  getTickersWithViewByDate,
+  updateTickerView,
+  updateStockTicker
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -111,6 +113,12 @@ router.get('/ticker/:ticker/by-guru', getTickerByGuruGrouped);
 
 // PUT update stock color
 router.put('/ticker/:ticker/color', updateStockColor);
+
+// PUT update ticker view
+router.put('/ticker/:ticker/ticker-view', updateTickerView);
+
+// PUT update stock ticker
+router.put('/ticker/:ticker/stock-ticker', updateStockTicker);
 
 // POST activate tickers for Dan
 router.post('/activate-for-dan', activateTickersForDan);

@@ -505,3 +505,51 @@ export const getTickersWithViewByDate = async (req: Request, res: Response): Pro
   }
 };
 
+export const updateTickerView = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const { ticker_view } = req.body;
+    
+    if (!ticker_view) {
+      res.status(400).json({ error: 'ticker_view is required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.updateTickerView(ticker, ticker_view);
+    
+    if (!result) {
+      res.status(404).json({ error: 'Ticker not found' });
+      return;
+    }
+    
+    res.json({ success: true, ticker, ticker_view });
+  } catch (error) {
+    console.error('Error updating ticker view:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateStockTicker = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const { stock_ticker } = req.body;
+    
+    if (!stock_ticker) {
+      res.status(400).json({ error: 'stock_ticker is required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.updateStockTicker(ticker, stock_ticker);
+    
+    if (!result) {
+      res.status(404).json({ error: 'Ticker not found' });
+      return;
+    }
+    
+    res.json({ success: true, ticker, stock_ticker });
+  } catch (error) {
+    console.error('Error updating stock ticker:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

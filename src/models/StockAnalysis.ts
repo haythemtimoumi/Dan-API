@@ -1137,6 +1137,28 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query, params);
     return rows;
   }
+
+  async updateTickerView(ticker: string, tickerView: string): Promise<boolean> {
+    const query = `
+      UPDATE scraper_tasks 
+      SET ticker_view = $1, last_updated_at = NOW()
+      WHERE symbol = $2
+      RETURNING id
+    `;
+    const { rows } = await pool.query(query, [tickerView, ticker.toUpperCase()]);
+    return rows.length > 0;
+  }
+
+  async updateStockTicker(ticker: string, stockTicker: string): Promise<boolean> {
+    const query = `
+      UPDATE scraper_tasks 
+      SET stock_ticker = $1, last_updated_at = NOW()
+      WHERE symbol = $2
+      RETURNING id
+    `;
+    const { rows } = await pool.query(query, [stockTicker, ticker.toUpperCase()]);
+    return rows.length > 0;
+  }
 }
 
 export default new StockAnalysisModel();
