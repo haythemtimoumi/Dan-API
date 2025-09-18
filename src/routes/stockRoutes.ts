@@ -34,7 +34,8 @@ import {
   getRecentCompanyDate,
   getTickersWithViewByDate,
   updateTickerView,
-  updateStockTicker
+  updateStockTicker,
+  updateRule1Ticker
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -119,6 +120,9 @@ router.put('/ticker/:ticker/ticker-view', updateTickerView);
 
 // PUT update stock ticker
 router.put('/ticker/:ticker/stock-ticker', updateStockTicker);
+
+// PUT update rule1 ticker
+router.put('/ticker/:ticker/rule1-ticker', updateRule1Ticker);
 
 // POST activate tickers for Dan
 router.post('/activate-for-dan', activateTickersForDan);

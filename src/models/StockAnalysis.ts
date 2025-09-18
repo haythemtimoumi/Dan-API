@@ -1120,9 +1120,10 @@ export class StockAnalysisModel {
         symbol,
         stock_ticker,
         ticker_view,
+        rule1_ticker,
         last_updated_at
       FROM scraper_tasks
-      WHERE ticker_view IS NOT NULL OR stock_ticker IS NOT NULL
+      WHERE ticker_view IS NOT NULL OR stock_ticker IS NOT NULL OR rule1_ticker IS NOT NULL
     `;
     
     const params: any[] = [];
@@ -1157,6 +1158,17 @@ export class StockAnalysisModel {
       RETURNING id
     `;
     const { rows } = await pool.query(query, [stockTicker, ticker.toUpperCase()]);
+    return rows.length > 0;
+  }
+
+  async updateRule1Ticker(ticker: string, rule1Ticker: string): Promise<boolean> {
+    const query = `
+      UPDATE scraper_tasks 
+      SET rule1_ticker = $1, last_updated_at = NOW()
+      WHERE symbol = $2
+      RETURNING id
+    `;
+    const { rows } = await pool.query(query, [rule1Ticker, ticker.toUpperCase()]);
     return rows.length > 0;
   }
 }

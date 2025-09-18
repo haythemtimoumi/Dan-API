@@ -554,3 +554,27 @@ export const updateStockTicker = async (req: Request, res: Response): Promise<vo
   }
 };
 
+export const updateRule1Ticker = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const { rule1_ticker } = req.body;
+    
+    if (rule1_ticker === undefined) {
+      res.status(400).json({ error: 'rule1_ticker is required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.updateRule1Ticker(ticker, rule1_ticker);
+    
+    if (!result) {
+      res.status(404).json({ error: 'Ticker not found' });
+      return;
+    }
+    
+    res.json({ success: true, ticker, rule1_ticker });
+  } catch (error) {
+    console.error('Error updating rule1 ticker:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
