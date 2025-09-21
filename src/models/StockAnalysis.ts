@@ -1171,6 +1171,77 @@ export class StockAnalysisModel {
     const { rows } = await pool.query(query, [rule1Ticker, ticker.toUpperCase()]);
     return rows.length > 0;
   }
+
+  async getTickerDataByDate(ticker: string, date: string): Promise<any> {
+    const upperTicker = ticker.toUpperCase();
+    
+    // Get scraper_tasks data
+    const scraperQuery = `
+      SELECT active, target, company_name, stock_ticker, rule1_ticker
+      FROM scraper_tasks 
+      WHERE symbol = $1
+    `;
+    const scraperResult = await pool.query(scraperQuery, [upperTicker]);
+    
+    if (scraperResult.rows.length === 0) {
+      return { error: 'Ticker not found' };
+    }
+    
+    const scraperData = scraperResult.rows[0];
+    
+    // Get stock_analysis data by stock_ticker or symbol for the specific date
+    const stockTickerToUse = scraperData.stock_ticker || upperTicker;
+    const stockAnalysisQuery = `
+      SELECT signal_score, sentiment_score, screenshot, per_upside, last_price
+      FROM stock_analysis 
+      WHERE ticker = $1 AND DATE(date) = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const stockAnalysisResult = await pool.query(stockAnalysisQuery, [stockTickerToUse, date]);
+    
+    // Get rule1 data by rule1_ticker or symbol for the same month
+    const rule1TickerToUse = scraperData.rule1_ticker || upperTicker;
+    const rule1Query = `
+      SELECT rule1_score, moat_score, management_score, pbt
+      FROM stock_analysis 
+      WHERE ticker = $1 
+      AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM $2::date)
+      AND EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM $2::date)
+      ORDER BY date DESC, created_at DESC
+      LIMIT 1
+    `;
+    const rule1Result = await pool.query(rule1Query, [rule1TickerToUse, date]);
+    
+    return {
+      ticker: upperTicker,
+      date,
+      scraper_data: {
+        active: scraperData.active,
+        target: scraperData.target,
+        company_name: scraperData.company_name
+      },
+      stock_analysis: {
+        ticker_used: stockTickerToUse,
+        data: stockAnalysisResult.rows.length > 0 ? {
+          signal_score: stockAnalysisResult.rows[0].signal_score,
+          sentiment_score: stockAnalysisResult.rows[0].sentiment_score,
+          screenshot: stockAnalysisResult.rows[0].screenshot,
+          per_upside: stockAnalysisResult.rows[0].per_upside,
+          last_price: stockAnalysisResult.rows[0].last_price
+        } : null
+      },
+      rule1_analysis: {
+        ticker_used: rule1TickerToUse,
+        data: rule1Result.rows.length > 0 ? {
+          rule1_score: rule1Result.rows[0].rule1_score,
+          moat_score: rule1Result.rows[0].moat_score,
+          management_score: rule1Result.rows[0].management_score,
+          pbt: rule1Result.rows[0].pbt
+        } : null
+      }
+    };
+  }
 }
 
 export default new StockAnalysisModel();

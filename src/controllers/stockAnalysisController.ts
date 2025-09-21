@@ -578,3 +578,20 @@ export const updateRule1Ticker = async (req: Request, res: Response): Promise<vo
   }
 };
 
+export const getTickerDataByDate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { ticker, date } = req.query;
+    
+    if (!ticker || !date) {
+      res.status(400).json({ error: 'Both ticker and date parameters are required' });
+      return;
+    }
+    
+    const result = await stockAnalysisModel.getTickerDataByDate(ticker as string, date as string);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching ticker data by date:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

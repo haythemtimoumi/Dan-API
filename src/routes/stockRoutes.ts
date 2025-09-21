@@ -35,7 +35,8 @@ import {
   getTickersWithViewByDate,
   updateTickerView,
   updateStockTicker,
-  updateRule1Ticker
+  updateRule1Ticker,
+  getTickerDataByDate
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -48,6 +49,9 @@ router.get('/companies/recent-date', getRecentCompanyDate);
 
 // GET tickers with ticker_view and stock_ticker by date
 router.get('/tickers-with-view', getTickersWithViewByDate);
+
+// GET ticker data by date (combined from scraper_tasks and stock_analysis)
+router.get('/ticker-data', getTickerDataByDate);
 
 // GET stocks by ticker and date with ticker info
 router.get('/by-ticker-date', getByTickerAndDate);
