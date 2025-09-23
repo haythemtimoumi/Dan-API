@@ -595,3 +595,37 @@ export const getTickerDataByDate = async (req: Request, res: Response): Promise<
   }
 };
 
+export const updateTargetByTicker = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const result = await stockAnalysisModel.updateTargetByTicker(ticker, false);
+    
+    if (!result) {
+      res.status(404).json({ error: 'Ticker not found' });
+      return;
+    }
+    
+    res.json({ success: true, ticker, target: false });
+  } catch (error) {
+    console.error('Error updating target by ticker:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateActiveByTicker = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const result = await stockAnalysisModel.updateActiveByTicker(ticker, false);
+    
+    if (!result) {
+      res.status(404).json({ error: 'Ticker not found' });
+      return;
+    }
+    
+    res.json({ success: true, ticker, active: false });
+  } catch (error) {
+    console.error('Error updating active by ticker:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

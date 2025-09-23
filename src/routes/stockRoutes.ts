@@ -36,7 +36,9 @@ import {
   updateTickerView,
   updateStockTicker,
   updateRule1Ticker,
-  getTickerDataByDate
+  getTickerDataByDate,
+  updateTargetByTicker,
+  updateActiveByTicker
 } from '../controllers/stockAnalysisController';
 
 const router = Router();
@@ -127,6 +129,12 @@ router.put('/ticker/:ticker/stock-ticker', updateStockTicker);
 
 // PUT update rule1 ticker
 router.put('/ticker/:ticker/rule1-ticker', updateRule1Ticker);
+
+// PUT update target to false by ticker
+router.put('/ticker/:ticker/target-false', updateTargetByTicker);
+
+// PUT update active to false by ticker
+router.put('/ticker/:ticker/active-false', updateActiveByTicker);
 
 // POST activate tickers for Dan
 router.post('/activate-for-dan', activateTickersForDan);

@@ -1242,6 +1242,28 @@ export class StockAnalysisModel {
       }
     };
   }
+
+  async updateTargetByTicker(ticker: string, target: boolean): Promise<boolean> {
+    const query = `
+      UPDATE scraper_tasks 
+      SET target = $1, last_updated_at = NOW()
+      WHERE symbol = $2
+      RETURNING id
+    `;
+    const { rows } = await pool.query(query, [target, ticker.toUpperCase()]);
+    return rows.length > 0;
+  }
+
+  async updateActiveByTicker(ticker: string, active: boolean): Promise<boolean> {
+    const query = `
+      UPDATE scraper_tasks 
+      SET active = $1, last_updated_at = NOW()
+      WHERE symbol = $2
+      RETURNING id
+    `;
+    const { rows } = await pool.query(query, [active, ticker.toUpperCase()]);
+    return rows.length > 0;
+  }
 }
 
 export default new StockAnalysisModel();
